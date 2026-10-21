@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Kasir Point of Sale (POS) - Kedai Unik{% endblock %}
+{% block header_title %}Kasir POS &amp; Pesanan{% endblock %}
+{% block header_subtitle %}Pencatatan pesanan cepat, nomor antrean otomatis, dan cetak struk nota pembayaran{% endblock %}
+
+{% block content %}
+<div class="pos-wrapper">
+  <!-- LEFT: MENU SELECTION AREA -->
+  <div class="pos-menu-section">
+    <!-- Search & Member Quick Bar -->
+    <div class="card-custom mb-3">
+      <div class="p-3">
+        <div class="row g-2 align-items-center">
+          <div class="col-12 col-md-6">
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" id="searchMenu" class="form-control border-start-0" placeholder="Ketik nama menu / kode produk...">
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="d-flex align-items-center gap-2">
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-person-badge text-primary"></i></span>
+                <select id="selectMember" class="form-select">
+                  <option value="">-- Pelanggan Umum (Non-Member) --</option>
+                  {% for mem in members %}
+                  <option value="{{ mem.id }}" data-poin="{{ mem.poin }}">{{ mem.nama }} ({{ mem.kode_member }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div id="memberInfoBadge"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Pills -->
+    <div class="category-pills mb-3">
+      <div class="category-pill active" data-cat="all">
+        <i class="bi bi-grid-fill me-1"></i> Semua Kategori
+      </div>
+      {% for cat in categories %}
+      <div class="category-pill" data-cat="{{ cat.id }}">
+        <i class="bi {{ cat.icon or 'bi-cup-straw' }} me-1"></i> {{ cat.nama_kategori }}
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Menu Items Grid -->
+    <div class="pos-grid">
+      {% for m in menus %}
+      <div>
+        <div class="pos-item-card {{ 'disabled' if m.status == 'Habis' else '' }}"
+             data-cat-id="{{ m.kategori_id }}"
+             data-name="{{ m.nama_menu }}"
+             data-code="{{ m.kode_menu }}"
+             onclick="addToCart({{ m.id }}, '{{ m.kode_menu }}', '{{ m.nama_menu }}', {{ m.harga }}, '{{ m.status }}')">
+          
+          <img src="{{ url_for('static', filename='uploads/' + m.gambar) if m.gambar else url_for('static', filename='img/default_menu.jpg') }}" 
+               alt="{{ m.nama_menu }}" 
+               class="pos-item-img"
+               onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/default_menu.jpg') }}'">
+          
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="badge bg-light text-muted border" style="font-size: 0.68rem;">{{ m.kode_menu }}</span>
+            {% if m.status == 'Habis' %}
+            <span class="badge bg-danger text-white" style="font-size: 0.65rem;">Habis</span>
+            {% endif %}
+          </div>
+
+          <h6 class="pos-item-name">{{ m.nama_menu }}</h6>
+          <span class="pos-item-price">Rp {{ "{:,.0f}".format(m.harga).replace(',', '.') }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- RIGHT: CART & CHECKOUT PANEL -->
+  <div class="pos-cart-section">
+    <div class="cart-header">
+      <div>
+        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-cart3 text-primary me-2"></i>Keranjang Pesanan</h5>
+        <small class="text-muted">No Antrean Berikutnya: <strong class="text-primary">{{ next_queue }}</strong></small>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearCart()" title="Kosongkan Keranjang">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
+
+    <!-- Items List -->
+    <div class="cart-items-container" id="cartItemsList">
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-cart-x fs-1 text-light-muted d-block mb-2"></i>
+        <p class="mb-0 fw-semibold">Keranjang masih kosong</p>
+        <small class="text-secondary">Pilih menu di samping untuk mulai transaksi</small>
+      </div>
+    </div>
+
+    <!-- Cart Footer & Calculation -->
+    <div class="cart-footer">
+      <div class="mb-3">
+        <label class="form-label small fw-semibold text-muted d-flex justify-content-between">
+          <span>Potongan Diskon (Rp)</span>
+          <span class="text-primary" style="cursor: pointer;" onclick="document.getElementById('inputDiskon').value='5000'; document.getElementById('inputDiskon').dispatchEvent(new Event('input'));">Promo 5Rb</span>
+        </label>
+        <input type="number" id="inputDiskon" class="form-control form-control-sm" placeholder="0" min="0" step="1000">
+      </div>
+
+      <div class="cart-summary-line">
+        <span>Subtotal</span>
+        <strong id="cartSubtotal">Rp 0</strong>
+      </div>
+      <div class="cart-summary-line">
+        <span>Diskon</span>
+        <span class="text-danger" id="cartDiscount">Rp 0</span>
+      </div>
+      <div class="cart-summary-line total">
+        <span>Total Pembayaran</span>
+        <span class="text-primary" id="cartTotal">Rp 0</span>
+      </div>
+
+      <button type="button" id="btnOpenCheckout" class="btn btn-primary-custom w-100 py-2 fs-6 mt-3 justify-content-center" disabled onclick="openCheckoutModal()">
+        <i class="bi bi-cash-stack me-1"></i> Lanjut ke Pembayaran (<span id="cartTotalCount">0</span>)
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL PEMBAYARAN / CHECKOUT ================= -->
+<div class="modal fade" id="checkoutModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="bi bi-credit-card me-2"></i>Konfirmasi &amp; Pembayaran</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <!-- Total Box -->
+        <div class="bg-light p-3 rounded-3 text-center mb-4 border">
+          <span class="text-muted small text-uppercase fw-bold">Total yang Harus Dibayar</span>
+          <h2 class="fw-bold text-primary mb-0 mt-1" id="modalTotalBayarDisplay">Rp 0</h2>
+          <small class="text-muted">Subtotal: <span id="modalSubtotalDisplay">Rp 0</span> &bull; Diskon: <span id="modalDiskonDisplay">Rp 0</span></small>
+        </div>
+
+        <!-- Nama Pelanggan & Catatan -->
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Nama Pemesan</label>
+            <input type="text" id="inputCustomerName" class="form-control form-control-sm" placeholder="Pelanggan Umum">
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Catatan Khusus</label>
+            <input type="text" id="inputCatatanPesanan" class="form-control form-control-sm" placeholder="Contoh: Es dipisah, manis sedang">
+          </div>
+        </div>
+
+        <!-- Pilihan Metode Pembayaran -->
+        <label class="form-label small fw-semibold">Metode Pembayaran</label>
+        <div class="d-flex gap-2 mb-3">
+          <input type="radio" class="btn-check" name="paymentMethod" id="methodTunai" value="Tunai" checked>
+          <label class="btn btn-outline-primary flex-fill" for="methodTunai"><i class="bi bi-cash me-1"></i> Tunai</label>
+
+          <input type="radio" class="btn-check" name="paymentMethod" id="methodQRIS" value="QRIS">
+          <label class="btn btn-outline-primary flex-fill" for="methodQRIS"><i class="bi bi-qr-code me-1"></i> QRIS</label>
+
+          <input type="radio" class="btn-check" name="paymentMethod" id="methodTransfer" value="Transfer">
+          <label class="btn btn-outline-primary flex-fill" for="methodTransfer"><i class="bi bi-bank me-1"></i> Transfer</label>
+
+          <input type="radio" class="btn-check" name="paymentMethod" id="methodDebit" value="Debit">
+          <label class="btn btn-outline-primary flex-fill" for="methodDebit"><i class="bi bi-credit-card-2-front me-1"></i> Debit</label>
+        </div>
+
+        <!-- QRIS Box Banner -->
+        <div id="qrisBox" class="alert alert-info d-none p-3 text-center mb-3">
+          <i class="bi bi-qr-code fs-1 d-block mb-1 text-primary"></i>
+          <strong>Scan QRIS Kedai Unik</strong>
+          <p class="small mb-0 text-muted">Mendukung GoPay, OVO, Dana, ShopeePay &amp; Seluruh Mobile Banking.</p>
+        </div>
+
+        <!-- Transfer Box Banner -->
+        <div id="transferBox" class="alert alert-warning d-none p-2 text-center mb-3 small">
+          <strong>BCA: 872-098-7711</strong> a.n. Kedai Unik
+        </div>
+
+        <!-- Cash Keypad & Quick Amount -->
+        <div id="cashBox">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Uang Diterima (Rp)</label>
+            <input type="number" id="modalBayarInput" class="form-control form-control-lg fw-bold text-dark" placeholder="Masukkan jumlah uang...">
+          </div>
+
+          <!-- Quick Cash Buttons -->
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setQuickCash('pas')">Uang Pas</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setQuickCash(20000)">20.000</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setQuickCash(50000)">50.000</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setQuickCash(100000)">100.000</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setQuickCash(200000)">200.000</button>
+          </div>
+
+          <div class="p-3 bg-light rounded-3 d-flex justify-content-between align-items-center border">
+            <span class="fw-semibold">Kembalian:</span>
+            <span id="modalKembalianDisplay" class="fw-bold text-success fs-5">Rp 0</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" id="btnSubmitTransaction" class="btn btn-primary-custom" onclick="submitTransaction()">
+          <i class="bi bi-check-circle me-1"></i> Proses &amp; Selesaikan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL BUKTI PEMBAYARAN / STRUK ================= -->
+<div class="modal fade" id="receiptModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold"><i class="bi bi-printer me-2"></i>Transaksi Berhasil!</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4 bg-light" id="receiptContent">
+        <!-- Injected via JavaScript -->
+      </div>
+      <div class="modal-footer bg-white d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-plus-circle me-1"></i> Pesanan Baru
+        </button>
+        <div class="d-flex gap-2">
+          <button type="button" id="btnPrintDirect" class="btn btn-primary-custom">
+            <i class="bi bi-printer me-1"></i> Cetak Nota Struk
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pos.js') }}"></script>
+{% endblock %}

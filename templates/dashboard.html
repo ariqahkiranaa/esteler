@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Admin{% endblock %}
+{% block header_title %}Dashboard Ringkasan Operasional{% endblock %}
+{% block header_subtitle %}Pantau statistik penjualan, antrean kasir, dan persediaan stok bahan secara real-time{% endblock %}
+
+{% block content %}
+<!-- Quick Action Buttons -->
+<div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
+  <div>
+    <h5 class="fw-bold mb-0 text-dark">Selamat Datang, {{ session.get('user_nama', 'Administrator') }}! 👋</h5>
+    <small class="text-muted">Berikut adalah perkembangan bisnis kedai Es Teler hari ini.</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('pos_page') }}" class="btn btn-primary-custom">
+      <i class="bi bi-cart-plus fs-5"></i> Kasir POS Baru
+    </a>
+    <a href="{{ url_for('antrean_page') }}" class="btn btn-success-custom">
+      <i class="bi bi-ticket-perforated fs-5"></i> Live Antrean ({{ antrean_aktif_count }})
+    </a>
+  </div>
+</div>
+
+<!-- 4 Key Stat Cards -->
+<div class="row g-3 mb-4">
+  <!-- Omset Hari Ini -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-box stat-primary">
+      <div class="stat-info">
+        <span>Total Omset Hari Ini</span>
+        <h3>Rp {{ "{:,.0f}".format(omset_hari_ini or 0).replace(',', '.') }}</h3>
+        <small class="text-success fw-semibold"><i class="bi bi-arrow-up-right me-1"></i>Pendapatan Bersih</small>
+      </div>
+      <div class="stat-icon">
+        <i class="bi bi-cash-coin"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transaksi Hari Ini -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-box stat-success">
+      <div class="stat-info">
+        <span>Transaksi Hari Ini</span>
+        <h3>{{ transaksi_hari_ini_count or 0 }}</h3>
+        <small class="text-muted">Total nota diproses</small>
+      </div>
+      <div class="stat-icon">
+        <i class="bi bi-receipt"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Antrean Aktif -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-box stat-warning">
+      <div class="stat-info">
+        <span>Antrean Aktif</span>
+        <h3>{{ antrean_aktif_count or 0 }}</h3>
+        <small class="text-warning-emphasis fw-semibold">Menunggu &amp; Diproses</small>
+      </div>
+      <div class="stat-icon">
+        <i class="bi bi-hourglass-split"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menu Aktif & Bahan -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-box stat-danger">
+      <div class="stat-info">
+        <span>Bahan Menipis</span>
+        <h3 class="text-danger">{{ low_stock_count or 0 }}</h3>
+        <small class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle me-1"></i>Perlu restock segera</small>
+      </div>
+      <div class="stat-icon">
+        <i class="bi bi-box-seam"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts & Low Stock Section -->
+<div class="row g-4 mb-4">
+  <!-- Grafik Penjualan 7 Hari Terakhir -->
+  <div class="col-12 col-lg-8">
+    <div class="card-custom h-100">
+      <div class="card-header-custom">
+        <h5><i class="bi bi-bar-chart-line text-primary"></i> Tren Penjualan 7 Hari Terakhir</h5>
+        <span class="badge bg-primary-subtle text-primary fw-semibold px-3 py-1">Omset Harian</span>
+      </div>
+      <div class="card-body-custom">
+        <div style="height: 300px; position: relative;">
+          <canvas id="salesChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ringkasan Bahan Baku Menipis -->
+  <div class="col-12 col-lg-4">
+    <div class="card-custom h-100">
+      <div class="card-header-custom">
+        <h5><i class="bi bi-exclamation-circle text-danger"></i> Stok Perlu Restock</h5>
+        <a href="{{ url_for('stok_page') }}" class="btn btn-sm btn-outline-danger">Semua Stok</a>
+      </div>
+      <div class="card-body-custom p-0">
+        {% if low_stock_items %}
+          <div class="list-group list-group-flush">
+            {% for item in low_stock_items %}
+            <div class="list-group-item p-3 d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="mb-1 fw-bold text-dark">{{ item.nama_bahan }}</h6>
+                <small class="text-muted">Batas Minimal: <strong class="text-dark">{{ item.stok_minimal }} {{ item.satuan }}</strong></small>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-danger-subtle text-danger fs-6 px-2 py-1">{{ item.stok }} {{ item.satuan }}</span>
+                <div class="mt-1">
+                  <a href="{{ url_for('stok_page') }}" class="btn btn-xs btn-outline-primary" style="font-size: 0.72rem; padding: 2px 6px;">+ Tambah Stok</a>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-check2-circle text-success fs-1 d-block mb-2"></i>
+            <p class="mb-0 fw-semibold">Semua Stok Bahan Baku Aman!</p>
+            <small>Tidak ada bahan yang berada di bawah stok minimal.</small>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Transaksi Terakhir & Menu Terlaris -->
+<div class="row g-4">
+  <!-- Transaksi Terakhir -->
+  <div class="col-12 col-lg-8">
+    <div class="card-custom">
+      <div class="card-header-custom">
+        <h5><i class="bi bi-clock-history text-secondary"></i> Transaksi Penjualan Hari Ini</h5>
+        <a href="{{ url_for('laporan_page') }}" class="btn btn-sm btn-outline-primary">Lihat Laporan Lengkap</a>
+      </div>
+      <div class="card-body-custom p-0">
+        <div class="table-responsive">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>No Antrean</th>
+                <th>No Transaksi</th>
+                <th>Pelanggan</th>
+                <th>Total</th>
+                <th>Metode</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if recent_transactions %}
+                {% for trx in recent_transactions %}
+                <tr>
+                  <td><span class="badge bg-primary-subtle text-primary fw-bold fs-6">{{ trx.no_antrean }}</span></td>
+                  <td><span class="small font-monospace">{{ trx.no_transaksi }}</span></td>
+                  <td><strong>{{ trx.nama_pelanggan }}</strong></td>
+                  <td class="fw-bold text-dark">Rp {{ "{:,.0f}".format(trx.total_akhir).replace(',', '.') }}</td>
+                  <td><span class="badge bg-light text-dark border">{{ trx.metode_pembayaran }}</span></td>
+                  <td>
+                    {% if trx.status_antrean == 'Menunggu' %}
+                      <span class="badge-status badge-menunggu"><i class="bi bi-clock"></i> Menunggu</span>
+                    {% elif trx.status_antrean == 'Diproses' %}
+                      <span class="badge-status badge-diproses"><i class="bi bi-gear-wide-connected"></i> Diproses</span>
+                    {% elif trx.status_antrean == 'Selesai' %}
+                      <span class="badge-status badge-selesai"><i class="bi bi-check-circle"></i> Selesai</span>
+                    {% else %}
+                      <span class="badge-status badge-dibatalkan"><i class="bi bi-x-circle"></i> Dibatalkan</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a href="{{ url_for('struk_print', id=trx.id) }}" target="_blank" class="btn btn-sm btn-light border" title="Cetak Struk">
+                      <i class="bi bi-printer text-dark"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="7" class="text-center py-4 text-muted">Belum ada transaksi hari ini.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menu Terlaris Hari Ini / Minggu Ini -->
+  <div class="col-12 col-lg-4">
+    <div class="card-custom">
+      <div class="card-header-custom">
+        <h5><i class="bi bi-trophy text-warning"></i> Menu Terlaris</h5>
+        <span class="badge bg-warning-subtle text-warning-emphasis">Best Seller</span>
+      </div>
+      <div class="card-body-custom p-0">
+        {% if top_menus %}
+          <div class="list-group list-group-flush">
+            {% for m in top_menus %}
+            <div class="list-group-item p-3 d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center gap-3">
+                <span class="badge rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-weight: 700;">{{ loop.index }}</span>
+                <div>
+                  <h6 class="mb-0 fw-bold text-dark">{{ m.nama_menu }}</h6>
+                  <small class="text-muted">Terjual: <strong class="text-success">{{ m.total_terjual }} porsi</strong></small>
+                </div>
+              </div>
+              <span class="fw-bold text-primary small">Rp {{ "{:,.0f}".format(m.total_omset).replace(',', '.') }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-cup-straw fs-2 text-light-muted d-block mb-1"></i>
+            <small>Belum ada data penjualan tercatat.</small>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Render Chart Penjualan Mingguan
+  document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('salesChart');
+    if (!ctx) return;
+
+    const chartLabels = {{ chart_labels | tojson }};
+    const chartData = {{ chart_data | tojson }};
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: chartLabels,
+        datasets: [{
+          label: 'Omset Penjualan (Rp)',
+          data: chartData,
+          borderColor: '#0284C7',
+          backgroundColor: 'rgba(2, 132, 199, 0.1)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 3,
+          pointBackgroundColor: '#0284C7',
+          pointBorderColor: '#FFFFFF',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                return 'Omset: Rp ' + context.parsed.y.toLocaleString('id-ID');
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function (value) {
+                if (value >= 1000000) return 'Rp ' + (value / 1000000) + ' Jt';
+                if (value >= 1000) return 'Rp ' + (value / 1000) + ' Rb';
+                return 'Rp ' + value;
+              }
+            },
+            grid: {
+              color: '#F1F5F9'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

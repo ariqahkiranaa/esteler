@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Data Pelanggan & Member{% endblock %}
+{% block header_title %}Manajemen Pelanggan &amp; Member Kedai{% endblock %}
+{% block header_subtitle %}Kelola data pelanggan setia, akumulasi poin loyalitas, dan histori pesanan{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-4">
+    <div class="stat-box stat-primary">
+      <div class="stat-info">
+        <span>Total Member Terdaftar</span>
+        <h3>{{ members | length }}</h3>
+        <small class="text-muted">Pelanggan loyalitas aktif</small>
+      </div>
+      <div class="stat-icon"><i class="bi bi-people"></i></div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="stat-box stat-success">
+      <div class="stat-info">
+        <span>Total Poin Beredar</span>
+        <h3>{{ total_poin or 0 }}</h3>
+        <small class="text-success"><i class="bi bi-star-fill text-warning me-1"></i>Poin reward pelanggan</small>
+      </div>
+      <div class="stat-icon"><i class="bi bi-award"></i></div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4 d-flex align-items-center justify-content-md-end">
+    <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalTambahMember">
+      <i class="bi bi-person-plus me-1"></i> Daftarkan Member Baru
+    </button>
+  </div>
+</div>
+
+<div class="card-custom">
+  <div class="card-header-custom">
+    <h5><i class="bi bi-person-lines-fill text-primary"></i> Daftar Member Pelanggan</h5>
+    <span class="badge bg-light text-muted border">{{ members | length }} Member</span>
+  </div>
+  <div class="card-body-custom p-0">
+    <div class="table-responsive">
+      <table class="table-custom">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Kode Member</th>
+            <th>Nama Lengkap</th>
+            <th>No. Telepon / WA</th>
+            <th>Email</th>
+            <th>Alamat</th>
+            <th>Poin Reward</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if members %}
+            {% for mem in members %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td><span class="badge bg-primary-subtle text-primary font-monospace fs-6">{{ mem.kode_member }}</span></td>
+              <td><strong class="text-dark">{{ mem.nama }}</strong></td>
+              <td>
+                <a href="https://wa.me/{{ mem.no_telp | replace('-', '') | replace(' ', '') }}" target="_blank" class="text-decoration-none text-success small">
+                  <i class="bi bi-whatsapp me-1"></i>{{ mem.no_telp }}
+                </a>
+              </td>
+              <td class="small text-muted">{{ mem.email or '-' }}</td>
+              <td class="small text-muted">{{ mem.alamat or '-' }}</td>
+              <td>
+                <span class="badge bg-warning-subtle text-warning-emphasis fw-bold fs-6">
+                  <i class="bi bi-star-fill text-warning me-1"></i>{{ mem.poin }} Poin
+                </span>
+              </td>
+              <td>
+                <div class="btn-group">
+                  <button type="button" class="btn btn-sm btn-light border"
+                          data-id="{{ mem.id }}"
+                          data-kode="{{ mem.kode_member }}"
+                          data-nama="{{ mem.nama }}"
+                          data-telp="{{ mem.no_telp }}"
+                          data-email="{{ mem.email or '' }}"
+                          data-alamat="{{ mem.alamat or '' }}"
+                          data-poin="{{ mem.poin or 0 }}"
+                          onclick="openEditMemberModal(this)" title="Edit Member">
+                    <i class="bi bi-pencil text-muted"></i>
+                  </button>
+                  <form action="{{ url_for('member_hapus', id=mem.id) }}" method="POST" onsubmit="return confirm('Hapus data member {{ mem.nama }}?')" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-light border text-danger" title="Hapus Member">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" class="text-center py-5 text-muted">Belum ada data member terdaftar.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL TAMBAH MEMBER ================= -->
+<div class="modal fade" id="modalTambahMember" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form action="{{ url_for('member_tambah') }}" method="POST">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold"><i class="bi bi-person-plus me-2"></i>Daftarkan Member Baru</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Kode Member</label>
+              <input type="text" name="kode_member" class="form-control" value="{{ auto_kode_member }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Poin Bonus Awal</label>
+              <input type="number" name="poin" class="form-control" value="10">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nama Lengkap <span class="text-danger">*</span></label>
+            <input type="text" name="nama" class="form-control" placeholder="Contoh: Budi Santoso" required>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">No. Telepon / WA <span class="text-danger">*</span></label>
+              <input type="text" name="no_telp" class="form-control" placeholder="081234567890" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Email (Opsional)</label>
+              <input type="email" name="email" class="form-control" placeholder="budi@gmail.com">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Alamat</label>
+            <textarea name="alamat" class="form-control" rows="2" placeholder="Alamat domisili pelanggan..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary-custom"><i class="bi bi-save me-1"></i> Simpan Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL EDIT MEMBER ================= -->
+<div class="modal fade" id="modalEditMember" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form id="formEditMember" method="POST">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Data Member</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Kode Member</label>
+              <input type="text" id="edit_kode_member" name="kode_member" class="form-control" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Poin Reward</label>
+              <input type="number" id="edit_poin" name="poin" class="form-control">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nama Lengkap <span class="text-danger">*</span></label>
+            <input type="text" id="edit_nama" name="nama" class="form-control" required>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">No. Telepon / WA <span class="text-danger">*</span></label>
+              <input type="text" id="edit_no_telp" name="no_telp" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Email</label>
+              <input type="email" id="edit_email" name="email" class="form-control">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Alamat</label>
+            <textarea id="edit_alamat" name="alamat" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary-custom"><i class="bi bi-save me-1"></i> Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function openEditMemberModal(btn) {
+    const id = btn.getAttribute('data-id');
+    document.getElementById('edit_kode_member').value = btn.getAttribute('data-kode');
+    document.getElementById('edit_nama').value = btn.getAttribute('data-nama');
+    document.getElementById('edit_no_telp').value = btn.getAttribute('data-telp');
+    document.getElementById('edit_email').value = btn.getAttribute('data-email') || '';
+    document.getElementById('edit_alamat').value = btn.getAttribute('data-alamat') || '';
+    document.getElementById('edit_poin').value = btn.getAttribute('data-poin') || 0;
+
+    const form = document.getElementById('formEditMember');
+    form.action = `/member/edit/${id}`;
+
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditMember'));
+    modal.show();
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Pengaturan Toko & Sistem{% endblock %}
+{% block header_title %}Pengaturan Toko &amp; Akun Admin{% endblock %}
+{% block header_subtitle %}Konfigurasi identitas kedai Es Teler, format struk belanja, password admin, dan backup database{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Profil Kedai & Format Struk -->
+  <div class="col-12 col-lg-7">
+    <div class="card-custom mb-4">
+      <div class="card-header-custom">
+        <h5><i class="bi bi-shop text-primary"></i> Profil Kedai &amp; Format Struk</h5>
+      </div>
+      <div class="card-body-custom">
+        <form action="{{ url_for('pengaturan_simpan') }}" method="POST">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nama Gerai / Kedai <span class="text-danger">*</span></label>
+            <input type="text" name="nama_toko" class="form-control" value="{{ shop.nama_toko }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Slogan Bisnis</label>
+            <input type="text" name="slogan" class="form-control" value="{{ shop.slogan or '' }}">
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Nomor Telepon / WhatsApp <span class="text-danger">*</span></label>
+              <input type="text" name="no_telepon" class="form-control" value="{{ shop.no_telepon }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Email Bisnis</label>
+              <input type="email" name="email" class="form-control" value="{{ shop.email or '' }}">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Alamat Kedai <span class="text-danger">*</span></label>
+            <textarea name="alamat" class="form-control" rows="2" required>{{ shop.alamat }}</textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Pesan Header Struk (Atas Nota)</label>
+            <textarea name="pesan_struk_header" class="form-control" rows="2">{{ shop.pesan_struk_header or '' }}</textarea>
+          </div>
+          <div class="mb-4">
+            <label class="form-label small fw-semibold">Pesan Footer Struk (Bawah Nota)</label>
+            <textarea name="pesan_struk_footer" class="form-control" rows="2">{{ shop.pesan_struk_footer or '' }}</textarea>
+          </div>
+          <button type="submit" class="btn btn-primary-custom">
+            <i class="bi bi-save me-1"></i> Simpan Pengaturan Kedai
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Akun Admin & Backup Database -->
+  <div class="col-12 col-lg-5">
+    <!-- Ubah Akun Admin -->
+    <div class="card-custom mb-4">
+      <div class="card-header-custom">
+        <h5><i class="bi bi-person-lock text-warning"></i> Keamanan Akun Admin</h5>
+      </div>
+      <div class="card-body-custom">
+        <form action="{{ url_for('pengaturan_admin') }}" method="POST">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nama Lengkap Admin <span class="text-danger">*</span></label>
+            <input type="text" name="nama_lengkap" class="form-control" value="{{ admin_user.nama_lengkap }}" required>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Username <span class="text-danger">*</span></label>
+              <input type="text" name="username" class="form-control" value="{{ admin_user.username }}" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Email</label>
+              <input type="email" name="email" class="form-control" value="{{ admin_user.email }}" required>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label small fw-semibold">Password Baru</label>
+            <input type="password" name="password_baru" class="form-control" placeholder="Kosongkan jika tidak ingin mengubah password">
+            <small class="text-muted" style="font-size: 0.75rem;">Password disimpan dengan enkripsi hash aman.</small>
+          </div>
+          <button type="submit" class="btn btn-warning fw-bold text-dark w-100">
+            <i class="bi bi-shield-check me-1"></i> Perbarui Akun Admin
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Backup & Restore Database -->
+    <div class="card-custom">
+      <div class="card-header-custom">
+        <h5><i class="bi bi-database-check text-success"></i> Backup &amp; Restore Database</h5>
+      </div>
+      <div class="card-body-custom">
+        <p class="small text-muted mb-3">
+          Amankan seluruh data transaksi, menu, persediaan bahan baku, dan riwayat pesanan dengan mengunduh backup SQL secara berkala.
+        </p>
+
+        <!-- Tombol Download Backup -->
+        <a href="{{ url_for('database_backup') }}" class="btn btn-outline-success w-100 mb-4 py-2">
+          <i class="bi bi-download me-1"></i> Unduh Cadangan Database (.sql)
+        </a>
+
+        <!-- Form Restore -->
+        <hr class="my-3">
+        <h6 class="fw-bold small text-dark mb-2">Pulihkan Database (Restore)</h6>
+        <form action="{{ url_for('database_restore') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirm('PERINGATAN: Memulihkan database akan menimpa data yang ada saat ini. Lanjutkan?')">
+          <div class="mb-3">
+            <input type="file" name="backup_file" class="form-control form-control-sm" accept=".sql" required>
+            <small class="text-danger" style="font-size: 0.72rem;">*Hanya unggah file backup .sql resmi dari sistem ini.</small>
+          </div>
+          <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+            <i class="bi bi-upload me-1"></i> Pulihkan Data dari File
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

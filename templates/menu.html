@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block title %}Manajemen Data Menu & Kategori{% endblock %}
+{% block header_title %}Manajemen Menu &amp; Varian Es Teler{% endblock %}
+{% block header_subtitle %}Kelola daftar menu minuman, varian topping, harga jual, dan status ketersediaan{% endblock %}
+
+{% block content %}
+<!-- Top Action Bar -->
+<div class="card-custom mb-4">
+  <div class="card-body-custom py-3">
+    <div class="row g-3 align-items-center justify-content-between">
+      <div class="col-12 col-md-5">
+        <form method="GET" action="{{ url_for('menu_page') }}" class="input-group">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" class="form-control border-start-0" placeholder="Cari nama menu atau kode..." value="{{ search_query }}">
+          {% if selected_cat %}
+          <input type="hidden" name="cat" value="{{ selected_cat }}">
+          {% endif %}
+          <button class="btn btn-outline-primary" type="submit">Cari</button>
+          {% if search_query %}
+          <a href="{{ url_for('menu_page') }}" class="btn btn-outline-secondary">Reset</a>
+          {% endif %}
+        </form>
+      </div>
+
+      <div class="col-12 col-md-7 d-flex flex-wrap gap-2 justify-content-md-end">
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#kategoriModal">
+          <i class="bi bi-tags me-1"></i> Kelola Kategori
+        </button>
+        <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#tambahMenuModal">
+          <i class="bi bi-plus-circle me-1"></i> Tambah Menu Baru
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Category Filters Tab Pills -->
+<div class="d-flex gap-2 overflow-x-auto pb-3 mb-3">
+  <a href="{{ url_for('menu_page', q=search_query) }}" class="btn btn-sm {{ 'btn-primary' if not selected_cat else 'btn-light border' }} rounded-pill px-3">
+    Semua Menu ({{ total_menu_count }})
+  </a>
+  {% for cat in categories %}
+  <a href="{{ url_for('menu_page', cat=cat.id, q=search_query) }}" class="btn btn-sm {{ 'btn-primary' if selected_cat == cat.id|string else 'btn-light border' }} rounded-pill px-3">
+    {{ cat.nama_kategori }} ({{ cat.total_items or 0 }})
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Menu Items Grid / Cards -->
+<div class="row g-3">
+  {% if menus %}
+    {% for m in menus %}
+    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+      <div class="card-custom h-100 d-flex flex-column position-relative">
+        <!-- Status Badge -->
+        <span class="position-absolute top-0 end-0 m-2 badge {{ 'bg-success' if m.status == 'Tersedia' else 'bg-danger' }} shadow-sm">
+          {{ m.status }}
+        </span>
+
+        <!-- Image -->
+        <div style="height: 160px; overflow: hidden; background: #F1F5F9;" class="d-flex align-items-center justify-content-center">
+          <img src="{{ url_for('static', filename='uploads/' + m.gambar) if m.gambar else url_for('static', filename='img/default_menu.jpg') }}" 
+               alt="{{ m.nama_menu }}" 
+               class="w-100 h-100 object-fit-cover"
+               onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/default_menu.jpg') }}'">
+        </div>
+
+        <div class="p-3 d-flex flex-column flex-grow-1">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="badge bg-primary-subtle text-primary small font-monospace">{{ m.kode_menu }}</span>
+            <small class="text-muted">{{ m.nama_kategori }}</small>
+          </div>
+          <h6 class="fw-bold text-dark mb-1 text-truncate" title="{{ m.nama_menu }}">{{ m.nama_menu }}</h6>
+          <p class="text-muted small mb-2 text-truncate-2" style="font-size: 0.8rem; height: 38px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+            {{ m.deskripsi or 'Menu segar khas nusantara pilihan.' }}
+          </p>
+
+          <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold text-primary mb-0" style="font-size: 1.05rem;">
+              Rp {{ "{:,.0f}".format(m.harga).replace(',', '.') }}
+            </h5>
+            <div class="d-flex align-items-center gap-1">
+              <button class="btn btn-sm btn-outline-primary p-1 px-2" type="button" 
+                      data-id="{{ m.id }}"
+                      data-kode="{{ m.kode_menu }}"
+                      data-nama="{{ m.nama_menu }}"
+                      data-kategori="{{ m.kategori_id }}"
+                      data-harga="{{ m.harga }}"
+                      data-status="{{ m.status }}"
+                      data-deskripsi="{{ m.deskripsi or '' }}"
+                      onclick="openEditMenuModal(this)" title="Edit Menu">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-success p-1 px-2" type="button"
+                      data-id="{{ m.id }}"
+                      data-nama="{{ m.nama_menu }}"
+                      onclick="openResepFromBtn(this)" title="Resep / Komposisi Bahan">
+                <i class="bi bi-link-45deg"></i>
+              </button>
+              <form action="{{ url_for('menu_hapus', id=m.id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus menu {{ m.nama_menu }}?')" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-danger p-1 px-2" title="Hapus Menu">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="col-12">
+      <div class="card-custom py-5 text-center text-muted">
+        <i class="bi bi-cup-straw fs-1 text-light-muted d-block mb-2"></i>
+        <h5>Tidak ada menu ditemukan</h5>
+        <p class="small mb-3">Silakan tambahkan menu baru atau ubah kata kunci pencarian Anda.</p>
+        <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#tambahMenuModal">
+          <i class="bi bi-plus-circle me-1"></i> Tambah Menu Baru
+        </button>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- ================= MODAL TAMBAH MENU ================= -->
+<div class="modal fade" id="tambahMenuModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form action="{{ url_for('menu_tambah') }}" method="POST" enctype="multipart/form-data">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2"></i>Tambah Menu Baru</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Kode Menu <span class="text-danger">*</span></label>
+              <input type="text" name="kode_menu" class="form-control" placeholder="Contoh: MN-015" required value="{{ auto_kode_menu }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Kategori <span class="text-danger">*</span></label>
+              <select name="kategori_id" class="form-select" required>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.nama_kategori }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Nama Menu <span class="text-danger">*</span></label>
+              <input type="text" name="nama_menu" class="form-control" placeholder="Contoh: Es Teler Nangka Sultan" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Harga Jual (Rp) <span class="text-danger">*</span></label>
+              <input type="number" name="harga" class="form-control" placeholder="18000" min="0" step="500" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Status Ketersediaan</label>
+              <select name="status" class="form-select">
+                <option value="Tersedia" selected>Tersedia</option>
+                <option value="Habis">Habis</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Deskripsi Menu</label>
+              <textarea name="deskripsi" class="form-control" rows="2" placeholder="Jelaskan isi/varian bahan menu ini..."></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Foto / Gambar Menu (Opsional)</label>
+              <input type="file" name="foto" class="form-control" accept="image/*">
+              <small class="text-muted">Format didukung: JPG, PNG, WEBP (Maksimal 5MB)</small>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary-custom"><i class="bi bi-save me-1"></i> Simpan Menu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL EDIT MENU ================= -->
+<div class="modal fade" id="editMenuModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form id="editMenuForm" method="POST" enctype="multipart/form-data">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Data Menu</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Kode Menu <span class="text-danger">*</span></label>
+              <input type="text" id="edit_kode_menu" name="kode_menu" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Kategori <span class="text-danger">*</span></label>
+              <select id="edit_kategori_id" name="kategori_id" class="form-select" required>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.nama_kategori }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Nama Menu <span class="text-danger">*</span></label>
+              <input type="text" id="edit_nama_menu" name="nama_menu" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Harga Jual (Rp) <span class="text-danger">*</span></label>
+              <input type="number" id="edit_harga" name="harga" class="form-control" min="0" step="500" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Status Ketersediaan</label>
+              <select id="edit_status" name="status" class="form-select">
+                <option value="Tersedia">Tersedia</option>
+                <option value="Habis">Habis</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Deskripsi Menu</label>
+              <textarea id="edit_deskripsi" name="deskripsi" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Ganti Foto Menu (Opsional)</label>
+              <input type="file" name="foto" class="form-control" accept="image/*">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary-custom"><i class="bi bi-save me-1"></i> Perbarui Menu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL KELOLA KATEGORI ================= -->
+<div class="modal fade" id="kategoriModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title fw-bold"><i class="bi bi-tags text-primary me-2"></i>Kelola Kategori Menu</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <!-- Form Tambah Kategori -->
+        <form action="{{ url_for('kategori_tambah') }}" method="POST" class="mb-4 p-3 bg-light rounded-3">
+          <h6 class="fw-bold mb-3 text-dark">+ Tambah Kategori Baru</h6>
+          <div class="row g-2">
+            <div class="col-md-5">
+              <input type="text" name="nama_kategori" class="form-control" placeholder="Nama Kategori (misal: Spesial Durian)" required>
+            </div>
+            <div class="col-md-5">
+              <input type="text" name="deskripsi" class="form-control" placeholder="Deskripsi singkat...">
+            </div>
+            <div class="col-md-2">
+              <button type="submit" class="btn btn-primary-custom w-100">Simpan</button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Tabel Daftar Kategori -->
+        <div class="table-responsive">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nama Kategori</th>
+                <th>Deskripsi</th>
+                <th>Jumlah Menu</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cat in categories %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td class="fw-bold text-dark">{{ cat.nama_kategori }}</td>
+                <td class="small text-muted">{{ cat.deskripsi or '-' }}</td>
+                <td><span class="badge bg-primary-subtle text-primary">{{ cat.total_items or 0 }} Item</span></td>
+                <td>
+                  <form action="{{ url_for('kategori_hapus', id=cat.id) }}" method="POST" onsubmit="return confirm('Hapus kategori ini? Menu terkait akan terhapus atau kehilangan kategori!')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger p-1 px-2" title="Hapus Kategori">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL RESEP BAHAN BAKU ================= -->
+<div class="modal fade" id="resepModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold" id="resepModalTitle"><i class="bi bi-link-45deg me-2"></i>Resep Bahan Baku</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="small text-muted mb-3">Tautkan bahan baku yang dipakai per porsi menu ini. Stok bahan baku akan otomatis berkurang setiap transaksi kasir berhasil.</p>
+        
+        <form id="formTambahResep" method="POST" action="{{ url_for('resep_tambah') }}" class="p-3 bg-light rounded-3 mb-3">
+          <input type="hidden" name="menu_id" id="resep_menu_id">
+          <div class="row g-2">
+            <div class="col-7">
+              <label class="form-label small fw-semibold">Pilih Bahan Baku</label>
+              <select name="bahan_id" class="form-select form-select-sm" required>
+                {% for b in all_raw_materials %}
+                <option value="{{ b.id }}">{{ b.nama_bahan }} ({{ b.satuan }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-3">
+              <label class="form-label small fw-semibold">Pakai (Qty)</label>
+              <input type="number" step="0.01" name="jumlah_pakai" class="form-control form-select-sm" placeholder="0.10" required>
+            </div>
+            <div class="col-2 d-flex align-items-end">
+              <button type="submit" class="btn btn-sm btn-success w-100">+ Tambah</button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Daftar Resep Terpasang -->
+        <h6 class="fw-bold mb-2 small text-dark">Komposisi Saat Ini:</h6>
+        <div id="resepListContainer">
+          <div class="text-center py-3 text-muted small">Memuat komposisi bahan...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function openEditMenuModal(btn) {
+    const id = btn.getAttribute('data-id');
+    document.getElementById('edit_kode_menu').value = btn.getAttribute('data-kode');
+    document.getElementById('edit_nama_menu').value = btn.getAttribute('data-nama');
+    document.getElementById('edit_kategori_id').value = btn.getAttribute('data-kategori');
+    document.getElementById('edit_harga').value = btn.getAttribute('data-harga');
+    document.getElementById('edit_status').value = btn.getAttribute('data-status');
+    document.getElementById('edit_deskripsi').value = btn.getAttribute('data-deskripsi') || '';
+
+    const form = document.getElementById('editMenuForm');
+    form.action = `/menu/edit/${id}`;
+
+    const modalEl = document.getElementById('editMenuModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+  }
+
+  function openResepFromBtn(btn) {
+    const menuId = btn.getAttribute('data-id');
+    const menuName = btn.getAttribute('data-nama');
+    openResepModal(menuId, menuName);
+  }
+
+  async function openResepModal(menuId, menuName) {
+    document.getElementById('resepModalTitle').innerHTML = `<i class="bi bi-link-45deg me-2"></i>Resep: ${menuName}`;
+    document.getElementById('resep_menu_id').value = menuId;
+    
+    const container = document.getElementById('resepListContainer');
+    container.innerHTML = '<div class="text-center py-3 text-muted small"><span class="spinner-border spinner-border-sm me-1"></span> Memuat komposisi...</div>';
+    
+    const modalEl = document.getElementById('resepModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+
+    try {
+      const res = await fetch(`/api/menu/${menuId}/resep`);
+      const data = await res.json();
+      
+      if (!data || data.length === 0) {
+        container.innerHTML = '<div class="text-center py-3 text-muted small">Belum ada bahan baku ditautkan. Tambahkan di atas agar stok bahan berkurang otomatis saat terjual.</div>';
+      } else {
+        let html = '<ul class="list-group list-group-flush">';
+        data.forEach(item => {
+          html += `
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+              <div>
+                <strong class="text-dark small">${item.nama_bahan}</strong>
+                <span class="badge bg-light text-dark border ms-2">${item.jumlah_pakai} ${item.satuan} / porsi</span>
+              </div>
+              <form action="/resep/hapus/${item.id}" method="POST" onsubmit="return confirm('Hapus bahan ini dari resep?')">
+                <input type="hidden" name="menu_id" value="${menuId}">
+                <button type="submit" class="btn btn-sm text-danger p-0"><i class="bi bi-trash"></i></button>
+              </form>
+            </li>
+          `;
+        });
+        html += '</ul>';
+        container.innerHTML = html;
+      }
+    } catch (e) {
+      container.innerHTML = '<div class="text-danger small py-2">Gagal memuat resep bahan.</div>';
+    }
+  }
+</script>
+{% endblock %}

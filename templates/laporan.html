@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Laporan Penjualan & Keuangan{% endblock %}
+{% block header_title %}Laporan Penjualan &amp; Analisis Keuangan{% endblock %}
+{% block header_subtitle %}Pantau rekapitulasi omset, laba, menu terlaris, dan ekspor laporan ke Excel atau PDF{% endblock %}
+
+{% block content %}
+<!-- Filter Card -->
+<div class="card-custom mb-4 no-print">
+  <div class="card-body-custom py-3">
+    <form method="GET" action="{{ url_for('laporan_page') }}">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-sm-6 col-md-3">
+          <label class="form-label small fw-semibold text-muted">Dari Tanggal</label>
+          <input type="date" name="tgl_awal" class="form-control" value="{{ tgl_awal }}">
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+          <label class="form-label small fw-semibold text-muted">Sampai Tanggal</label>
+          <input type="date" name="tgl_akhir" class="form-control" value="{{ tgl_akhir }}">
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+          <label class="form-label small fw-semibold text-muted">Kategori Menu</label>
+          <select name="kategori_id" class="form-select">
+            <option value="">-- Semua Kategori --</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}" {{ 'selected' if selected_cat == cat.id|string else '' }}>{{ cat.nama_kategori }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3 d-flex gap-2">
+          <button type="submit" class="btn btn-primary-custom flex-fill justify-content-center">
+            <i class="bi bi-funnel me-1"></i> Filter
+          </button>
+          <a href="{{ url_for('laporan_page') }}" class="btn btn-outline-secondary" title="Reset Filter">
+            <i class="bi bi-arrow-counterclockwise"></i>
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Report Summary KPI Stat Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-box stat-primary">
+      <div class="stat-info">
+        <span>Total Omset Penjualan</span>
+        <h3>Rp {{ "{:,.0f}".format(total_omset or 0).replace(',', '.') }}</h3>
+        <small class="text-primary fw-semibold"><i class="bi bi-cash-stack me-1"></i>Periode Terpilih</small>
+      </div>
+      <div class="stat-icon"><i class="bi bi-wallet2"></i></div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-box stat-success">
+      <div class="stat-info">
+        <span>Total Transaksi</span>
+        <h3>{{ total_transaksi_count or 0 }}</h3>
+        <small class="text-success fw-semibold"><i class="bi bi-receipt-cutoff me-1"></i>Faktur Berhasil</small>
+      </div>
+      <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-box stat-warning">
+      <div class="stat-info">
+        <span>Porsi / Item Terjual</span>
+        <h3>{{ total_porsi or 0 }}</h3>
+        <small class="text-warning-emphasis fw-semibold">Gelas / Mangkok</small>
+      </div>
+      <div class="stat-icon"><i class="bi bi-cup-straw"></i></div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-box stat-info">
+      <div class="stat-info">
+        <span>Rata-rata Transaksi</span>
+        <h3>Rp {{ "{:,.0f}".format(avg_transaksi or 0).replace(',', '.') }}</h3>
+        <small class="text-muted">AOV (Average Order Value)</small>
+      </div>
+      <div class="stat-icon"><i class="bi bi-calculator"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- Export Action Buttons -->
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+  <h5 class="fw-bold text-dark mb-0">Rincian Laporan Transaksi</h5>
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-outline-dark btn-sm" onclick="window.print()">
+      <i class="bi bi-printer me-1"></i> Cetak Laporan
+    </button>
+    <a href="{{ url_for('laporan_export_excel', tgl_awal=tgl_awal, tgl_akhir=tgl_akhir, kategori_id=selected_cat) }}" class="btn btn-success btn-sm">
+      <i class="bi bi-file-earmark-excel me-1"></i> Ekspor Excel (.xlsx)
+    </a>
+    <a href="{{ url_for('laporan_export_pdf', tgl_awal=tgl_awal, tgl_akhir=tgl_akhir, kategori_id=selected_cat) }}" class="btn btn-danger btn-sm">
+      <i class="bi bi-file-earmark-pdf me-1"></i> Ekspor PDF
+    </a>
+  </div>
+</div>
+
+<!-- Laporan Transaksi Table -->
+<div class="card-custom mb-4">
+  <div class="card-body-custom p-0">
+    <div class="table-responsive">
+      <table class="table-custom">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>No Transaksi</th>
+            <th>Tanggal &amp; Waktu</th>
+            <th>Pelanggan</th>
+            <th>Rincian Menu</th>
+            <th>Subtotal</th>
+            <th>Diskon</th>
+            <th>Total Akhir</th>
+            <th>Metode</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if transactions %}
+            {% for trx in transactions %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td><span class="font-monospace small fw-bold">{{ trx.no_transaksi }}</span></td>
+              <td class="small text-muted">{{ trx.created_at }}</td>
+              <td>
+                <strong class="text-dark">{{ trx.nama_pelanggan }}</strong>
+                {% if trx.kode_member %}
+                <span class="badge bg-light text-primary border ms-1">{{ trx.kode_member }}</span>
+                {% endif %}
+              </td>
+              <td class="small" style="max-width: 250px;">
+                <div class="text-truncate" title="{{ trx.items_detail }}">{{ trx.items_detail }}</div>
+              </td>
+              <td>Rp {{ "{:,.0f}".format(trx.subtotal).replace(',', '.') }}</td>
+              <td class="text-danger">{{ '- Rp ' + "{:,.0f}".format(trx.diskon).replace(',', '.') if trx.diskon > 0 else '-' }}</td>
+              <td class="fw-bold text-primary">Rp {{ "{:,.0f}".format(trx.total_akhir).replace(',', '.') }}</td>
+              <td><span class="badge bg-light text-dark border">{{ trx.metode_pembayaran }}</span></td>
+              <td>
+                <a href="{{ url_for('struk_print', id=trx.id) }}" target="_blank" class="btn btn-xs btn-light border p-1 px-2" title="Cetak Nota">
+                  <i class="bi bi-printer"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="10" class="text-center py-5 text-muted">
+                Tidak ada data transaksi ditemukan pada rentang tanggal ini.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Best Sellers & Stock Mutation Summary -->
+<div class="row g-4">
+  <!-- Menu Terlaris (Best Seller) -->
+  <div class="col-12 col-lg-6">
+    <div class="card-custom">
+      <div class="card-header-custom">
+        <h5><i class="bi bi-trophy text-warning"></i> Menu Terlaris (Best Seller)</h5>
+        <span class="badge bg-warning-subtle text-warning-emphasis">Paling Diminati</span>
+      </div>
+      <div class="card-body-custom p-0">
+        <div class="table-responsive">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>Peringkat</th>
+                <th>Nama Menu</th>
+                <th>Kategori</th>
+                <th>Terjual</th>
+                <th>Total Omset</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if best_sellers %}
+                {% for b in best_sellers %}
+                <tr>
+                  <td>
+                    <span class="badge rounded-circle {{ 'bg-warning text-dark' if loop.index == 1 else ('bg-secondary text-white' if loop.index == 2 else 'bg-light text-dark border') }} p-2" style="width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;">
+                      {{ loop.index }}
+                    </span>
+                  </td>
+                  <td><strong>{{ b.nama_menu }}</strong></td>
+                  <td class="small text-muted">{{ b.nama_kategori }}</td>
+                  <td><span class="badge bg-success-subtle text-success fs-6">{{ b.total_terjual }} porsi</span></td>
+                  <td class="fw-bold text-primary">Rp {{ "{:,.0f}".format(b.total_omset).replace(',', '.') }}</td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr><td colspan="5" class="text-center py-4 text-muted">Belum ada data penjualan menu.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ringkasan Mutasi Bahan Baku -->
+  <div class="col-12 col-lg-6">
+    <div class="card-custom">
+      <div class="card-header-custom">
+        <h5><i class="bi bi-box-seam text-primary"></i> Mutasi Bahan Baku Terbanyak</h5>
+        <a href="{{ url_for('stok_page') }}" class="btn btn-sm btn-outline-primary no-print">Kelola Stok</a>
+      </div>
+      <div class="card-body-custom p-0">
+        <div class="table-responsive">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>Bahan Baku</th>
+                <th>Stok Terkini</th>
+                <th>Total Masuk</th>
+                <th>Total Keluar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if stock_summary %}
+                {% for s in stock_summary %}
+                <tr>
+                  <td><strong>{{ s.nama_bahan }}</strong></td>
+                  <td>
+                    <span class="badge {{ 'bg-danger-subtle text-danger' if s.stok <= s.stok_minimal else 'bg-success-subtle text-success' }}">
+                      {{ "{:,.2f}".format(s.stok).rstrip('0').rstrip('.') }} {{ s.satuan }}
+                    </span>
+                  </td>
+                  <td class="text-success fw-semibold">+{{ "{:,.2f}".format(s.total_masuk or 0).rstrip('0').rstrip('.') }} {{ s.satuan }}</td>
+                  <td class="text-danger fw-semibold">-{{ "{:,.2f}".format(s.total_keluar or 0).rstrip('0').rstrip('.') }} {{ s.satuan }}</td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr><td colspan="4" class="text-center py-4 text-muted">Belum ada mutasi bahan tercatat.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

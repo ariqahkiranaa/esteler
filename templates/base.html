@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Sistem Informasi Penjualan{% endblock %} - Kedai Unik</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo.svg') }}">
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  
+  <style>
+    .topbar {
+      position: relative;
+      z-index: 1050;
+      overflow: visible !important;
+    }
+    .topbar-right {
+      position: relative;
+      z-index: 1060;
+    }
+    .topbar-right .dropdown {
+      position: relative;
+      z-index: 1065;
+    }
+    .topbar-right button {
+      cursor: pointer !important;
+      position: relative;
+      z-index: 1070;
+    }
+    .topbar-right button * {
+      pointer-events: none !important;
+    }
+    .dropdown-menu {
+      z-index: 9999 !important;
+    }
+  </style>
+  
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">
+        <i class="bi bi-cup-straw"></i>
+      </div>
+      <div class="sidebar-brand-text">
+        <h5>Kedai Unik</h5>
+        <span>POS &amp; Operasional</span>
+      </div>
+    </div>
+
+    <ul class="sidebar-menu">
+      <li class="sidebar-menu-header">Menu Utama</li>
+      <li class="sidebar-item">
+        <a href="{{ url_for('dashboard') }}" class="sidebar-link {{ 'active' if active_page == 'dashboard' else '' }}">
+          <i class="bi bi-grid-1x2"></i>
+          <span>Dashboard</span>
+        </a>
+      </li>
+      <li class="sidebar-item">
+        <a href="{{ url_for('pos_page') }}" class="sidebar-link {{ 'active' if active_page == 'pos' else '' }}">
+          <i class="bi bi-calculator"></i>
+          <span>Kasir / POS</span>
+          <span class="badge bg-success ms-auto text-white">Kasir</span>
+        </a>
+      </li>
+      <li class="sidebar-item">
+        <a href="{{ url_for('antrean_page') }}" class="sidebar-link {{ 'active' if active_page == 'antrean' else '' }}">
+          <i class="bi bi-ticket-perforated"></i>
+          <span>Antrean Pesanan</span>
+          {% if g.antrean_aktif_count and g.antrean_aktif_count > 0 %}
+          <span class="badge bg-warning text-dark ms-auto">{{ g.antrean_aktif_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+
+      <li class="sidebar-menu-header">Manajemen Produk</li>
+      <li class="sidebar-item">
+        <a href="{{ url_for('menu_page') }}" class="sidebar-link {{ 'active' if active_page == 'menu' else '' }}">
+          <i class="bi bi-card-list"></i>
+          <span>Data Menu</span>
+        </a>
+      </li>
+      <li class="sidebar-item">
+        <a href="{{ url_for('stok_page') }}" class="sidebar-link {{ 'active' if active_page == 'stok' else '' }}">
+          <i class="bi bi-box-seam"></i>
+          <span>Stok Bahan Baku</span>
+          {% if g.low_stock_count and g.low_stock_count > 0 %}
+          <span class="badge bg-danger ms-auto">{{ g.low_stock_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li class="sidebar-item">
+        <a href="{{ url_for('member_page') }}" class="sidebar-link {{ 'active' if active_page == 'member' else '' }}">
+          <i class="bi bi-people"></i>
+          <span>Data Member</span>
+        </a>
+      </li>
+
+      <li class="sidebar-menu-header">Laporan &amp; Keuangan</li>
+      <li class="sidebar-item">
+        <a href="{{ url_for('laporan_page') }}" class="sidebar-link {{ 'active' if active_page == 'laporan' else '' }}">
+          <i class="bi bi-graph-up-arrow"></i>
+          <span>Laporan Penjualan</span>
+        </a>
+      </li>
+
+      <li class="sidebar-menu-header">Sistem</li>
+      <li class="sidebar-item">
+        <a href="{{ url_for('log_aktivitas_page') }}" class="sidebar-link {{ 'active' if active_page == 'log' else '' }}">
+          <i class="bi bi-clock-history"></i>
+          <span>Log Aktivitas</span>
+        </a>
+      </li>
+      <li class="sidebar-item">
+        <a href="{{ url_for('pengaturan_page') }}" class="sidebar-link {{ 'active' if active_page == 'pengaturan' else '' }}">
+          <i class="bi bi-gear"></i>
+          <span>Pengaturan</span>
+        </a>
+      </li>
+      <li class="sidebar-item mt-3">
+        <a href="{{ url_for('logout') }}" class="sidebar-link text-danger" onclick="return confirm('Apakah Anda yakin ingin logout?')">
+          <i class="bi bi-box-arrow-right text-danger"></i>
+          <span>Logout</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user-card">
+        <div class="sidebar-user-avatar">
+          <i class="bi bi-person-fill"></i>
+        </div>
+        <div class="overflow-hidden">
+          <div class="fw-bold text-truncate" style="font-size: 0.85rem;">{{ session.get('user_nama', 'Admin Kedai') }}</div>
+          <div class="text-muted small text-truncate"><span class="badge bg-info-subtle text-primary">Administrator</span></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN WRAPPER ================= -->
+  <div class="main-wrapper">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button type="button" class="btn-sidebar-toggle" aria-label="Toggle Sidebar">
+          <i class="bi bi-list fs-5"></i>
+        </button>
+        <div class="topbar-title">
+          <h4>{% block header_title %}Dashboard{% endblock %}</h4>
+          <span>{% block header_subtitle %}Sistem Penjualan &amp; Operasional Terintegrasi{% endblock %}</span>
+        </div>
+      </div>
+
+      <div class="topbar-right d-flex align-items-center gap-2">
+        <!-- Live Clock -->
+        <div class="live-datetime d-none d-md-flex align-items-center" id="liveClock">
+          <i class="bi bi-clock me-1 text-primary"></i> Memuat waktu...
+        </div>
+
+        <!-- Stok Alert Notification Bell -->
+        <div class="dropdown">
+          <button class="btn btn-light position-relative rounded-circle p-2 border" type="button" id="bellNotificationBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Peringatan Stok Menipis">
+            <i class="bi bi-bell-fill fs-5 text-dark"></i>
+            {% if g.low_stock_count and g.low_stock_count > 0 %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white">
+              {{ g.low_stock_count }}
+            </span>
+            {% endif %}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2" aria-labelledby="bellNotificationBtn" style="width: 320px;">
+            <li class="dropdown-header fw-bold text-dark d-flex justify-content-between align-items-center py-1">
+              <span><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Bahan Menipis</span>
+              <span class="badge bg-danger">{{ g.low_stock_count or 0 }} Bahan</span>
+            </li>
+            <li><hr class="dropdown-divider my-1"></li>
+            {% if g.low_stock_items %}
+              {% for item in g.low_stock_items %}
+              <li class="p-2 border-bottom">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="fw-bold small text-dark text-truncate">{{ item.nama_bahan }}</span>
+                  <span class="badge bg-danger text-white">{{ item.stok }} {{ item.satuan }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <small class="text-muted" style="font-size: 0.72rem;">Batas Min: {{ item.stok_minimal }} {{ item.satuan }}</small>
+                  <a href="{{ url_for('stok_page') }}" class="btn btn-xs btn-outline-primary" style="font-size: 0.72rem; padding: 2px 8px;">
+                    <i class="bi bi-plus-circle me-1"></i>Restock
+                  </a>
+                </div>
+              </li>
+              {% endfor %}
+              <li class="text-center pt-2">
+                <a href="{{ url_for('stok_page') }}" class="btn btn-sm btn-primary w-100 py-1">
+                  <i class="bi bi-box-seam me-1"></i> Buka Menu Stok Bahan Baku
+                </a>
+              </li>
+            {% else %}
+              <li class="text-center py-3 text-muted small">
+                <i class="bi bi-check-circle text-success fs-4 d-block mb-1"></i>
+                Semua stok bahan baku aman.
+              </li>
+            {% endif %}
+          </ul>
+        </div>
+<!-- Admin Profile Dropdown -->
+        <div class="dropdown">
+          <button class="btn btn-light d-flex align-items-center gap-2 rounded-pill px-3 py-1 border" type="button" id="adminDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+            <div class="text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 0.85rem; background-color: #f472b6;">
+              <i class="bi bi-person"></i>
+            </div>
+            <span class="fw-semibold small d-none d-sm-inline">{{ session.get('username', 'admin') }}</span>
+            <i class="bi bi-chevron-down small text-muted"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="adminDropdownBtn">
+            <li>
+              <a class="dropdown-item py-2" href="{{ url_for('pengaturan_page') }}">
+                <i class="bi bi-gear me-2 text-primary"></i> Pengaturan Toko
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{{ url_for('log_aktivitas_page') }}">
+                <i class="bi bi-clock-history me-2 text-secondary"></i> Log Aktivitas
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item py-2 text-danger" href="{{ url_for('logout') }}" onclick="return confirm('Yakin ingin logout?')">
+                <i class="bi bi-box-arrow-right me-2 text-danger"></i> Logout
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+      <!-- Flash Alert Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show shadow-sm border-0" role="alert">
+              <i class="bi bi-info-circle-fill me-2"></i>
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- Bootstrap 5 Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Main JS -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+  <!-- Handler Klik Dropdown -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      function attachDropdown(buttonId) {
+        var btn = document.getElementById(buttonId);
+        if (!btn) return;
+
+        btn.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          var container = btn.closest(".dropdown");
+          var menu = container ? container.querySelector(".dropdown-menu") : null;
+
+          document.querySelectorAll(".dropdown-menu.show").forEach(function (openMenu) {
+            if (openMenu !== menu) openMenu.classList.remove("show");
+          });
+
+          if (menu) {
+            menu.classList.toggle("show");
+          }
+        });
+      }
+
+      attachDropdown("bellNotificationBtn");
+      attachDropdown("adminDropdownBtn");
+
+      document.addEventListener("click", function () {
+        document.querySelectorAll(".dropdown-menu.show").forEach(function (openMenu) {
+          openMenu.classList.remove("show");
+        });
+      });
+    });
+  </script>
+  
+  {% block scripts %}{% endblock %}
+</body>
+</html>

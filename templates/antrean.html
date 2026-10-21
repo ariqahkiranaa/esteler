@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Antrean Pesanan Es Teler{% endblock %}
+{% block header_title %}Papan Monitor Antrean Pesanan{% endblock %}
+{% block header_subtitle %}Pantau antrean pesanan masuk, proses peracikan es teler, dan penyajian ke pelanggan{% endblock %}
+
+{% block content %}
+<!-- Top Bar Filter & Action -->
+<div class="card-custom mb-4">
+  <div class="card-body-custom py-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <form method="GET" action="{{ url_for('antrean_page') }}" class="d-flex align-items-center gap-2">
+          <label class="small fw-semibold text-muted mb-0">Tanggal:</label>
+          <input type="date" name="tanggal" class="form-control form-control-sm" value="{{ selected_date }}" onchange="this.form.submit()">
+          {% if selected_date != today_str %}
+          <a href="{{ url_for('antrean_page') }}" class="btn btn-sm btn-outline-secondary">Hari Ini</a>
+          {% endif %}
+        </form>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-sm btn-outline-primary" onclick="window.location.reload()">
+          <i class="bi bi-arrow-clockwise me-1"></i> Refresh Antrean
+        </button>
+        <a href="{{ url_for('pos_page') }}" class="btn btn-primary-custom btn-sm">
+          <i class="bi bi-plus-circle me-1"></i> Buat Pesanan Baru (POS)
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Queue Kanban Columns (4 Columns: Menunggu, Diproses, Selesai, Dibatalkan) -->
+<div class="row g-3">
+  <!-- 1. Menunggu -->
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="queue-column">
+      <div class="queue-column-header">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-warning text-dark rounded-circle p-2"><i class="bi bi-clock"></i></span>
+          <h6 class="fw-bold mb-0">Menunggu</h6>
+        </div>
+        <span class="badge bg-warning-subtle text-warning-emphasis fs-6">{{ antrean_menunggu | length }}</span>
+      </div>
+
+      <div class="queue-cards-wrapper">
+        {% if antrean_menunggu %}
+          {% for item in antrean_menunggu %}
+          <div class="queue-card border-warning">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <span class="queue-num-badge">{{ item.no_antrean }}</span>
+              <span class="badge bg-light text-muted border small">{{ item.created_at.strftime('%H:%M') if item.created_at else '' }}</span>
+            </div>
+            <div class="fw-bold text-dark mb-1">{{ item.nama_pelanggan }}</div>
+            <div class="small text-muted mb-2 font-monospace">{{ item.no_transaksi }}</div>
+
+            <!-- Items summary -->
+            <div class="bg-white p-2 rounded border mb-3 small">
+              <strong class="text-primary">{{ item.total_item }} Item:</strong>
+              <div class="text-truncate">{{ item.items_summary or 'Menu Es Teler' }}</div>
+              {% if item.catatan %}
+              <div class="text-warning-emphasis mt-1 fst-italic"><i class="bi bi-chat-left-text me-1"></i>"{{ item.catatan }}"</div>
+              {% endif %}
+            </div>
+
+            <div class="d-flex gap-2">
+              <form action="{{ url_for('antrean_update_status', id=item.id) }}" method="POST" class="flex-fill">
+                <input type="hidden" name="status" value="Diproses">
+                <button type="submit" class="btn btn-sm btn-primary w-100">
+                  <i class="bi bi-play-fill me-1"></i> Mulai Racik
+                </button>
+              </form>
+              <form action="{{ url_for('antrean_update_status', id=item.id) }}" method="POST">
+                <input type="hidden" name="status" value="Dibatalkan">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Batalkan" onclick="return confirm('Batalkan pesanan {{ item.no_antrean }}?')">
+                  <i class="bi bi-x"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-center py-5 text-muted small">
+            <i class="bi bi-inbox fs-2 text-light-muted d-block mb-1"></i>
+            Tidak ada antrean menunggu
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Diproses -->
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="queue-column">
+      <div class="queue-column-header">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-primary text-white rounded-circle p-2"><i class="bi bi-gear-wide-connected"></i></span>
+          <h6 class="fw-bold mb-0">Sedang Diracik</h6>
+        </div>
+        <span class="badge bg-primary-subtle text-primary fs-6">{{ antrean_diproses | length }}</span>
+      </div>
+
+      <div class="queue-cards-wrapper">
+        {% if antrean_diproses %}
+          {% for item in antrean_diproses %}
+          <div class="queue-card border-primary">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <span class="queue-num-badge text-primary">{{ item.no_antrean }}</span>
+              <span class="badge bg-primary-subtle text-primary small">{{ item.created_at.strftime('%H:%M') if item.created_at else '' }}</span>
+            </div>
+            <div class="fw-bold text-dark mb-1">{{ item.nama_pelanggan }}</div>
+            <div class="small text-muted mb-2 font-monospace">{{ item.no_transaksi }}</div>
+
+            <!-- Items summary -->
+            <div class="bg-white p-2 rounded border mb-3 small">
+              <strong class="text-primary">{{ item.total_item }} Item:</strong>
+              <div class="text-truncate">{{ item.items_summary or 'Menu Es Teler' }}</div>
+              {% if item.catatan %}
+              <div class="text-primary mt-1 fst-italic"><i class="bi bi-chat-left-text me-1"></i>"{{ item.catatan }}"</div>
+              {% endif %}
+            </div>
+
+            <form action="{{ url_for('antrean_update_status', id=item.id) }}" method="POST">
+              <input type="hidden" name="status" value="Selesai">
+              <button type="submit" class="btn btn-sm btn-success w-100">
+                <i class="bi bi-check2-circle me-1"></i> Selesai &amp; Sajikan
+              </button>
+            </form>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-center py-5 text-muted small">
+            <i class="bi bi-cup fs-2 text-light-muted d-block mb-1"></i>
+            Tidak ada pesanan sedang diracik
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Selesai -->
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="queue-column">
+      <div class="queue-column-header">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-success text-white rounded-circle p-2"><i class="bi bi-check-circle"></i></span>
+          <h6 class="fw-bold mb-0">Selesai</h6>
+        </div>
+        <span class="badge bg-success-subtle text-success fs-6">{{ antrean_selesai | length }}</span>
+      </div>
+
+      <div class="queue-cards-wrapper" style="max-height: 580px; overflow-y: auto;">
+        {% if antrean_selesai %}
+          {% for item in antrean_selesai %}
+          <div class="queue-card border-success">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+              <span class="badge bg-success text-white fs-6">{{ item.no_antrean }}</span>
+              <span class="badge bg-light text-muted border small">{{ item.created_at.strftime('%H:%M') if item.created_at else '' }}</span>
+            </div>
+            <div class="fw-bold text-dark small">{{ item.nama_pelanggan }}</div>
+            <div class="small text-muted">{{ item.total_item }} Item &bull; Rp {{ "{:,.0f}".format(item.total_akhir).replace(',', '.') }}</div>
+            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+              <span class="badge bg-success-subtle text-success small"><i class="bi bi-check me-1"></i>Disajikan</span>
+              <a href="{{ url_for('struk_print', id=item.id) }}" target="_blank" class="btn btn-xs btn-outline-secondary" style="font-size: 0.72rem; padding: 2px 6px;">
+                <i class="bi bi-printer me-1"></i>Struk
+              </a>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-center py-5 text-muted small">
+            <i class="bi bi-check-all fs-2 text-light-muted d-block mb-1"></i>
+            Belum ada pesanan selesai
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Dibatalkan -->
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="queue-column">
+      <div class="queue-column-header">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-danger text-white rounded-circle p-2"><i class="bi bi-x-circle"></i></span>
+          <h6 class="fw-bold mb-0">Dibatalkan</h6>
+        </div>
+        <span class="badge bg-danger-subtle text-danger fs-6">{{ antrean_dibatalkan | length }}</span>
+      </div>
+
+      <div class="queue-cards-wrapper">
+        {% if antrean_dibatalkan %}
+          {% for item in antrean_dibatalkan %}
+          <div class="queue-card border-danger opacity-75">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+              <span class="badge bg-danger text-white fs-6">{{ item.no_antrean }}</span>
+              <span class="badge bg-light text-muted border small">{{ item.created_at.strftime('%H:%M') if item.created_at else '' }}</span>
+            </div>
+            <div class="fw-bold text-dark small">{{ item.nama_pelanggan }}</div>
+            <div class="small text-danger">Pesanan Dibatalkan</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-center py-5 text-muted small">
+            <i class="bi bi-shield-check fs-2 text-light-muted d-block mb-1"></i>
+            Tidak ada pesanan dibatalkan
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Auto refresh queue board every 15 seconds
+  setTimeout(function () {
+    window.location.reload();
+  }, 15000);
+</script>
+{% endblock %}

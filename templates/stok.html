@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}Stok Bahan Baku{% endblock %}
+{% block header_title %}Manajemen Persediaan Stok Bahan Baku{% endblock %}
+{% block header_subtitle %}Pantau ketersediaan buah segar, santan, susu, kemasan cup, dan riwayat mutasi stok{% endblock %}
+
+{% block content %}
+<!-- Top Stats & Actions -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-4">
+    <div class="stat-box stat-primary">
+      <div class="stat-info">
+        <span>Total Jenis Bahan Baku</span>
+        <h3>{{ raw_materials | length }}</h3>
+        <small class="text-muted">Komoditas aktif terdaftar</small>
+      </div>
+      <div class="stat-icon"><i class="bi bi-boxes"></i></div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="stat-box stat-danger">
+      <div class="stat-info">
+        <span>Stok Menipis / Kritis</span>
+        <h3 class="text-danger">{{ low_stock_count }}</h3>
+        <small class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle me-1"></i>Di bawah stok minimal</small>
+      </div>
+      <div class="stat-icon"><i class="bi bi-shield-exclamation"></i></div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4 d-flex align-items-center justify-content-md-end gap-2">
+    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalMutasiStok">
+      <i class="bi bi-arrow-left-right me-1"></i> Catat Mutasi Masuk/Keluar
+    </button>
+    <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalTambahBahan">
+      <i class="bi bi-plus-circle me-1"></i> Tambah Bahan Baku
+    </button>
+  </div>
+</div>
+
+<!-- Tabs Navigation: Data Bahan Baku vs Riwayat Mutasi -->
+<ul class="nav nav-pills mb-3 gap-2" id="stokTab" role="tablist">
+  <li class="nav-item">
+    <button class="nav-link active rounded-pill px-4" id="bahan-tab" data-bs-toggle="tab" data-bs-target="#bahan-content" type="button">
+      <i class="bi bi-box-seam me-1"></i> Daftar Bahan Baku
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link rounded-pill px-4" id="mutasi-tab" data-bs-toggle="tab" data-bs-target="#mutasi-content" type="button">
+      <i class="bi bi-journal-text me-1"></i> Riwayat Mutasi Stok
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content" id="stokTabContent">
+  <!-- TAB 1: DAFTAR BAHAN BAKU -->
+  <div class="tab-pane fade show active" id="bahan-content">
+    <div class="card-custom">
+      <div class="card-header-custom">
+        <h5><i class="bi bi-clipboard-data text-primary"></i> Tabel Ketersediaan Bahan Baku</h5>
+        <span class="badge bg-light text-muted border">Real-time DB Sync</span>
+      </div>
+      <div class="card-body-custom p-0">
+        <div class="table-responsive">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nama Bahan Baku</th>
+                <th>Stok Saat Ini</th>
+                <th>Stok Minimal</th>
+                <th>Satuan</th>
+                <th>Estimasi Modal / Satuan</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in raw_materials %}
+              <tr class="{{ 'table-danger' if b.stok <= b.stok_minimal else '' }}">
+                <td>{{ loop.index }}</td>
+                <td>
+                  <strong class="text-dark">{{ b.nama_bahan }}</strong>
+                </td>
+                <td>
+                  <span class="fw-bold fs-6 {{ 'text-danger' if b.stok <= b.stok_minimal else 'text-success' }}">
+                    {{ "{:,.2f}".format(b.stok).rstrip('0').rstrip('.') }}
+                  </span>
+                </td>
+                <td>{{ "{:,.2f}".format(b.stok_minimal).rstrip('0').rstrip('.') }}</td>
+                <td><span class="badge bg-light text-dark border">{{ b.satuan }}</span></td>
+                <td>Rp {{ "{:,.0f}".format(b.harga_satuan).replace(',', '.') }}</td>
+                <td>
+                  {% if b.stok <= 0 %}
+                    <span class="badge bg-danger text-white"><i class="bi bi-x-circle me-1"></i>Habis</span>
+                  {% elif b.stok <= b.stok_minimal %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Menipis</span>
+                  {% else %}
+                    <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Aman</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-primary" onclick="quickMutasi({{ b.id }}, '{{ b.nama_bahan }}', '{{ b.satuan }}')" title="Tambah/Kurang Stok Cepat">
+                      <i class="bi bi-plus-slash-minus"></i>
+                    </button>
+                    <button class="btn btn-sm btn-light border" 
+                            data-id="{{ b.id }}"
+                            data-nama="{{ b.nama_bahan }}"
+                            data-satuan="{{ b.satuan }}"
+                            data-stok-minimal="{{ b.stok_minimal }}"
+                            data-harga-satuan="{{ b.harga_satuan }}"
+                            onclick="openEditBahanModal(this)" title="Edit Data Bahan">
+                      <i class="bi bi-pencil text-muted"></i>
+                    </button>
+                    <form action="{{ url_for('bahan_hapus', id=b.id) }}" method="POST" onsubmit="return confirm('Hapus bahan baku {{ b.nama_bahan }}?')" class="d-inline">
+                      <button type="submit" class="btn btn-sm btn-light border text-danger" title="Hapus Bahan">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: RIWAYAT MUTASI STOK -->
+  <div class="tab-pane fade" id="mutasi-content">
+    <div class="card-custom">
+      <div class="card-header-custom">
+        <h5><i class="bi bi-clock-history text-secondary"></i> Log Keluar Masuk Persediaan Bahan</h5>
+        <span class="badge bg-info-subtle text-info">50 Riwayat Terakhir</span>
+      </div>
+      <div class="card-body-custom p-0">
+        <div class="table-responsive">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>Waktu & Tanggal</th>
+                <th>Bahan Baku</th>
+                <th>Jenis</th>
+                <th>Jumlah Mutasi</th>
+                <th>Stok Sebelum</th>
+                <th>Stok Sesudah</th>
+                <th>Keterangan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if stock_logs %}
+                {% for log in stock_logs %}
+                <tr>
+                  <td class="small text-muted">{{ log.created_at }}</td>
+                  <td><strong class="text-dark">{{ log.nama_bahan }}</strong></td>
+                  <td>
+                    {% if log.jenis == 'Masuk' %}
+                      <span class="badge bg-success-subtle text-success"><i class="bi bi-arrow-down-left me-1"></i>Masuk</span>
+                    {% else %}
+                      <span class="badge bg-danger-subtle text-danger"><i class="bi bi-arrow-up-right me-1"></i>Keluar</span>
+                    {% endif %}
+                  </td>
+                  <td class="fw-bold {{ 'text-success' if log.jenis == 'Masuk' else 'text-danger' }}">
+                    {{ '+' if log.jenis == 'Masuk' else '-' }}{{ "{:,.2f}".format(log.jumlah).rstrip('0').rstrip('.') }} {{ log.satuan }}
+                  </td>
+                  <td>{{ "{:,.2f}".format(log.stok_sebelum).rstrip('0').rstrip('.') }}</td>
+                  <td><strong>{{ "{:,.2f}".format(log.stok_sesudah).rstrip('0').rstrip('.') }}</strong></td>
+                  <td class="small text-muted">{{ log.keterangan or '-' }}</td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="7" class="text-center py-4 text-muted">Belum ada riwayat mutasi bahan tercatat.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL TAMBAH BAHAN BAKU ================= -->
+<div class="modal fade" id="modalTambahBahan" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form action="{{ url_for('bahan_tambah') }}" method="POST">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2"></i>Tambah Bahan Baku Baru</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nama Bahan Baku <span class="text-danger">*</span></label>
+            <input type="text" name="nama_bahan" class="form-control" placeholder="Contoh: Alpukat Mentega Super" required>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Satuan <span class="text-danger">*</span></label>
+              <input type="text" name="satuan" class="form-control" placeholder="Kg / Liter / Kaleng / Pcs" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Stok Awal</label>
+              <input type="number" step="0.01" name="stok" class="form-control" value="0.00" required>
+            </div>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Batas Stok Minimal <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" name="stok_minimal" class="form-control" value="5.00" required>
+              <small class="text-muted" style="font-size: 0.75rem;">Sistem akan memunculkan alert jika di bawah angka ini.</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Estimasi Harga Beli / Satuan (Rp)</label>
+              <input type="number" name="harga_satuan" class="form-control" placeholder="25000" value="0">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary-custom"><i class="bi bi-save me-1"></i> Simpan Bahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL EDIT BAHAN BAKU ================= -->
+<div class="modal fade" id="modalEditBahan" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form id="formEditBahan" method="POST">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Bahan Baku</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nama Bahan Baku <span class="text-danger">*</span></label>
+            <input type="text" id="edit_nama_bahan" name="nama_bahan" class="form-control" required>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Satuan <span class="text-danger">*</span></label>
+              <input type="text" id="edit_satuan" name="satuan" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Batas Stok Minimal <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="edit_stok_minimal" name="stok_minimal" class="form-control" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Harga Beli / Satuan (Rp)</label>
+            <input type="number" id="edit_harga_satuan" name="harga_satuan" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary-custom"><i class="bi bi-save me-1"></i> Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL MUTASI STOK ================= -->
+<div class="modal fade" id="modalMutasiStok" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form action="{{ url_for('bahan_mutasi') }}" method="POST">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title fw-bold"><i class="bi bi-arrow-left-right me-2"></i>Catat Mutasi Stok Masuk / Keluar</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Pilih Bahan Baku <span class="text-danger">*</span></label>
+            <select name="bahan_id" id="mutasi_bahan_id" class="form-select" required>
+              {% for b in raw_materials %}
+              <option value="{{ b.id }}">{{ b.nama_bahan }} (Saat ini: {{ b.stok }} {{ b.satuan }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Jenis Mutasi <span class="text-danger">*</span></label>
+              <select name="jenis" class="form-select" required>
+                <option value="Masuk">Stok Masuk (Kulakan / Tambahan)</option>
+                <option value="Keluar">Stok Keluar (Rusak / Basi / Penyesuaian)</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Jumlah Qty <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" name="jumlah" class="form-control" placeholder="Contoh: 5.00" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Keterangan / Catatan Mutasi</label>
+            <input type="text" name="keterangan" class="form-control" placeholder="Contoh: Kulakan dari Pasar Induk Kramat Jati">
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-success-custom"><i class="bi bi-check-circle me-1"></i> Simpan Mutasi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function openEditBahanModal(btn) {
+    const id = btn.getAttribute('data-id');
+    document.getElementById('edit_nama_bahan').value = btn.getAttribute('data-nama');
+    document.getElementById('edit_satuan').value = btn.getAttribute('data-satuan');
+    document.getElementById('edit_stok_minimal').value = btn.getAttribute('data-stok-minimal');
+    document.getElementById('edit_harga_satuan').value = btn.getAttribute('data-harga-satuan');
+
+    const form = document.getElementById('formEditBahan');
+    form.action = `/stok/edit/${id}`;
+
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditBahan'));
+    modal.show();
+  }
+
+  function quickMutasi(id, name, satuan) {
+    const sel = document.getElementById('mutasi_bahan_id');
+    if (sel) sel.value = id;
+
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalMutasiStok'));
+    modal.show();
+  }
+</script>
+{% endblock %}
