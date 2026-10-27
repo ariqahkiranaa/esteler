@@ -100,7 +100,12 @@
                 </td>
                 <td>
                   <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-primary" onclick="quickMutasi({{ b.id }}, '{{ b.nama_bahan }}', '{{ b.satuan }}')" title="Tambah/Kurang Stok Cepat">
+                    <button class="btn btn-sm btn-outline-primary" 
+                            data-id="{{ b.id }}" 
+                            data-nama="{{ b.nama_bahan }}" 
+                            data-satuan="{{ b.satuan }}" 
+                            onclick="quickMutasiFromBtn(this)" 
+                            title="Tambah/Kurang Stok Cepat">
                       <i class="bi bi-plus-slash-minus"></i>
                     </button>
                     <button class="btn btn-sm btn-light border" 
@@ -109,7 +114,8 @@
                             data-satuan="{{ b.satuan }}"
                             data-stok-minimal="{{ b.stok_minimal }}"
                             data-harga-satuan="{{ b.harga_satuan }}"
-                            onclick="openEditBahanModal(this)" title="Edit Data Bahan">
+                            onclick="openEditBahanModal(this)" 
+                            title="Edit Data Bahan">
                       <i class="bi bi-pencil text-muted"></i>
                     </button>
                     <form action="{{ url_for('bahan_hapus', id=b.id) }}" method="POST" onsubmit="return confirm('Hapus bahan baku {{ b.nama_bahan }}?')" class="d-inline">
@@ -322,13 +328,14 @@
     document.getElementById('edit_harga_satuan').value = btn.getAttribute('data-harga-satuan');
 
     const form = document.getElementById('formEditBahan');
-    form.action = `/stok/edit/${id}`;
+    form.action = `/es_teler_pos/stok/edit/${id}`;
 
     const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditBahan'));
     modal.show();
   }
 
-  function quickMutasi(id, name, satuan) {
+  function quickMutasiFromBtn(btn) {
+    const id = btn.getAttribute('data-id');
     const sel = document.getElementById('mutasi_bahan_id');
     if (sel) sel.value = id;
 

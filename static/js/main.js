@@ -48,50 +48,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const autoAlerts = document.querySelectorAll('.alert-dismissible');
   autoAlerts.forEach(alert => {
     setTimeout(() => {
-      if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
-        const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
-        if (bsAlert) bsAlert.close();
-      }
+      const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+      if (bsAlert) bsAlert.close();
     }, 5000);
-  });
-
-  // 4. Reliable Dropdown Toggle Handler (Bell Notification & Admin Dropdown)
-  document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(btn => {
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      const parent = this.closest('.dropdown');
-      if (!parent) return;
-      const menu = parent.querySelector('.dropdown-menu');
-      if (!menu) return;
-
-      const isShown = menu.classList.contains('show');
-      document.querySelectorAll('.dropdown-menu.show').forEach(m => {
-        if (m !== menu) {
-          m.classList.remove('show');
-          const p = m.closest('.dropdown');
-          if (p) p.classList.remove('show');
-        }
-      });
-
-      if (!isShown) {
-        menu.classList.add('show');
-        parent.classList.add('show');
-      } else {
-        menu.classList.remove('show');
-        parent.classList.remove('show');
-      }
-    });
-  });
-
-  // Close dropdowns on outside click
-  document.addEventListener('click', function (e) {
-    if (!e.target.closest('.dropdown')) {
-      document.querySelectorAll('.dropdown-menu.show').forEach(m => {
-        m.classList.remove('show');
-        const p = m.closest('.dropdown');
-        if (p) p.classList.remove('show');
-      });
-    }
   });
 });
 
