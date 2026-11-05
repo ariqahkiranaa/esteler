@@ -50,7 +50,7 @@ def before_request():
         g.shop = query_db("SELECT * FROM pengaturan WHERE id = 1", one=True)
     except Exception:
         g.shop = {
-            'nama_toko': 'Kedai Es Teler Juara 77',
+            'nama_toko': 'Kedai Unik',
             'slogan': 'Sensasi Kesegaran Asli Buah Nusantara',
             'alamat': 'Jl. Boulevard Hijau No. 77',
             'no_telepon': '0812-3456-7890'
@@ -215,7 +215,7 @@ def dashboard():
 # 3. MANAJEMEN MENU & KATEGORI
 # ========================================================
 
-@app.route('/es_teler_pos')
+@app.route('/menu')
 @login_required
 def menu_page():
     search_q = request.args.get('q', '').strip()
@@ -240,7 +240,6 @@ def menu_page():
     sql += " ORDER BY m.id DESC"
     menus = query_db(sql, params)
 
-    # Categories with count of items
     categories = query_db("""
         SELECT k.*, COUNT(m.id) as total_items
         FROM kategori k
@@ -252,7 +251,6 @@ def menu_page():
     all_raw_materials = query_db("SELECT id, nama_bahan, satuan FROM bahan_baku ORDER BY nama_bahan ASC")
     total_menu_count = len(query_db("SELECT id FROM menu_item"))
 
-    # Auto next kode menu
     next_num = total_menu_count + 1
     auto_kode_menu = f"MN-{next_num:03d}"
 
@@ -268,7 +266,7 @@ def menu_page():
         selected_cat=selected_cat
     )
 
-@app.route('/es_teler_pos/menu/tambah', methods=['POST'])
+@app.route('/menu/tambah', methods=['POST'])
 @login_required
 def menu_tambah():
     kode_menu = request.form.get('kode_menu', '').strip().upper()
@@ -278,7 +276,6 @@ def menu_tambah():
     status = request.form.get('status', 'Tersedia')
     deskripsi = request.form.get('deskripsi', '').strip()
 
-    # Upload Foto
     foto_filename = 'default_menu.jpg'
     file = request.files.get('foto')
     if file and file.filename != '' and allowed_file(file.filename):
@@ -439,23 +436,7 @@ def bahan_tambah():
     flash(f"Bahan baku '{nama_bahan}' berhasil ditambahkan!", 'success')
     return redirect(url_for('stok_page'))
 
-@app.route('/stok/edit/<int:id>', methods=['POST'])
-@login_required
-def bahan_edit(id):
-    nama_bahan = request.form.get('nama_bahan', '').strip()
-    satuan = request.form.get('satuan', '').strip()
-    stok_minimal = float(request.form.get('stok_minimal', 5))
-    harga_satuan = float(request.form.get('harga_satuan', 0))
 
-    execute_db("""
-        UPDATE bahan_baku
-        SET nama_bahan=%s, satuan=%s, stok_minimal=%s, harga_satuan=%s
-        WHERE id=%s
-    """, (nama_bahan, satuan, stok_minimal, harga_satuan, id))
-
-    log_activity(session['user_id'], session['username'], 'Edit Bahan Baku', f"Memperbarui data bahan: {nama_bahan}")
-    flash(f"Data bahan baku '{nama_bahan}' berhasil disimpan!", 'success')
-    return redirect(url_for('stok_page'))
 
 @app.route('/stok/hapus/<int:id>', methods=['POST'])
 @login_required
@@ -777,13 +758,11 @@ def laporan_page():
     sql += " GROUP BY t.id ORDER BY t.id DESC"
     transactions = query_db(sql, params)
 
-    # Ringkasan KPI
     total_omset = sum(float(t['total_akhir']) for t in transactions) if transactions else 0
     total_trx = len(transactions)
     total_porsi = sum(int(t['total_item']) for t in transactions) if transactions else 0
     avg_trx = (total_omset / total_trx) if total_trx > 0 else 0
 
-    # Best Seller Periode Ini
     best_sellers = query_db("""
         SELECT mi.nama_menu, k.nama_kategori,
                SUM(dt.jumlah) as total_terjual,
@@ -798,7 +777,6 @@ def laporan_page():
         LIMIT 5
     """, (tgl_awal, tgl_akhir))
 
-    # Ringkasan Mutasi Bahan
     stock_summary = query_db("""
         SELECT b.nama_bahan, b.satuan, b.stok, b.stok_minimal,
                SUM(CASE WHEN l.jenis = 'Masuk' THEN l.jumlah ELSE 0 END) as total_masuk,
@@ -847,12 +825,10 @@ def laporan_export_excel():
     """
     transactions = query_db(sql, (tgl_awal, tgl_akhir))
 
-    # Buat Workbook Excel
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Laporan Penjualan"
 
-    # Styling
     header_fill = PatternFill(start_color="0284C7", end_color="0284C7", fill_type="solid")
     header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
     title_font = Font(name="Calibri", size=16, bold=True, color="0284C7")
@@ -862,9 +838,8 @@ def laporan_export_excel():
                          top=Side(style='thin', color='E2E8F0'),
                          bottom=Side(style='thin', color='E2E8F0'))
 
-    # Title Banner
     ws.merge_cells('A1:I1')
-    ws['A1'] = f"{g.shop.get('nama_toko', 'Kedai Es Teler Juara 77')} - Laporan Penjualan"
+    ws['A1'] = f"{g.shop.get('nama_toko', 'Kedai Unik')} - Laporan Penjualan"
     ws['A1'].font = title_font
     ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
 
@@ -873,10 +848,9 @@ def laporan_export_excel():
     ws['A2'].font = subtitle_font
     ws['A2'].alignment = Alignment(horizontal='center', vertical='center')
 
-    # Table Header
     headers = ["No", "No. Transaksi", "Tanggal", "Pelanggan", "Menu Dipesan", "Subtotal (Rp)", "Diskon (Rp)", "Total Akhir (Rp)", "Metode"]
-    ws.append([]) # row 3 empty
-    ws.append(headers) # row 4
+    ws.append([])
+    ws.append(headers)
 
     for col_idx in range(1, len(headers) + 1):
         cell = ws.cell(row=4, column=col_idx)
@@ -884,7 +858,6 @@ def laporan_export_excel():
         cell.font = header_font
         cell.alignment = Alignment(horizontal='center', vertical='center')
 
-    # Data Rows
     row_num = 5
     total_omset = 0
     for idx, t in enumerate(transactions, 1):
@@ -908,7 +881,6 @@ def laporan_export_excel():
                 cell.alignment = Alignment(horizontal='right')
         row_num += 1
 
-    # Total Row
     ws.append(["", "", "", "", "TOTAL OMSET PENJUALAN", "", "", total_omset, ""])
     ws.merge_cells(start_row=row_num, start_column=1, end_row=row_num, end_column=5)
     total_label = ws.cell(row=row_num, column=1)
@@ -918,7 +890,6 @@ def laporan_export_excel():
     total_val.font = Font(name="Calibri", size=11, bold=True, color="0284C7")
     total_val.number_format = '#,##0'
 
-    # Auto-adjust column width
     for col in ws.columns:
         max_len = max(len(str(cell.value or '')) for cell in col)
         col_letter = openpyxl.utils.get_column_letter(col[0].column)
@@ -928,7 +899,7 @@ def laporan_export_excel():
     wb.save(output)
     output.seek(0)
 
-    filename = f"Laporan_Penjualan_EsTeler_{tgl_awal}_{tgl_akhir}.xlsx"
+    filename = f"Laporan_Penjualan_KedaiUnik_{tgl_awal}_{tgl_akhir}.xlsx"
     return send_file(output, as_attachment=True, download_name=filename, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 @app.route('/laporan/export-pdf')
@@ -955,10 +926,9 @@ def laporan_export_pdf():
     title_style = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=18, textColor=colors.HexColor('#0284C7'), alignment=1, spaceAfter=4)
     subtitle_style = ParagraphStyle('DocSubTitle', parent=styles['Normal'], fontName='Helvetica', fontSize=10, textColor=colors.HexColor('#64748B'), alignment=1, spaceAfter=15)
 
-    story.append(Paragraph(f"<b>{g.shop.get('nama_toko', 'Kedai Es Teler Juara 77')}</b>", title_style))
+    story.append(Paragraph(f"<b>{g.shop.get('nama_toko', 'Kedai Unik')}</b>", title_style))
     story.append(Paragraph(f"Laporan Rekapitulasi Penjualan &bull; Periode: {tgl_awal} s/d {tgl_akhir}", subtitle_style))
 
-    # Table data
     data = [["No", "No. Transaksi", "Tanggal", "Pelanggan", "Porsi", "Total (Rp)", "Metode"]]
     total_omset = 0
     for idx, t in enumerate(transactions, 1):
@@ -999,7 +969,7 @@ def laporan_export_pdf():
     doc.build(story)
     buffer.seek(0)
 
-    filename = f"Laporan_Penjualan_EsTeler_{tgl_awal}_{tgl_akhir}.pdf"
+    filename = f"Laporan_Penjualan_KedaiUnik_{tgl_awal}_{tgl_akhir}.pdf"
     return send_file(buffer, as_attachment=True, download_name=filename, mimetype="application/pdf")
 
 # ========================================================
@@ -1077,10 +1047,9 @@ def pengaturan_admin():
 @app.route('/database/backup')
 @login_required
 def database_backup():
-    """Menghasilkan file export .sql dump langsung dari database."""
     tables = ['pengaturan', 'users', 'kategori', 'bahan_baku', 'menu_item', 'menu_resep', 'log_stok_bahan', 'pelanggan_member', 'transaksi', 'detail_transaksi', 'log_aktivitas']
     sql_dump = []
-    sql_dump.append(f"-- BACKUP DATABASE KEDAI ES TELER JUARA 77")
+    sql_dump.append("-- BACKUP DATABASE KEDAI UNIK")
     sql_dump.append(f"-- Waktu Backup: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     sql_dump.append(f"-- Generated by Admin: {session.get('username')}\n")
     sql_dump.append("SET FOREIGN_KEY_CHECKS = 0;\n")
@@ -1117,7 +1086,7 @@ def database_backup():
         conn.close()
 
     full_sql = "\n".join(sql_dump)
-    filename = f"backup_esteler_{datetime.date.today().strftime('%Y%m%d')}.sql"
+    filename = f"backup_kedaiunik_{datetime.date.today().strftime('%Y%m%d')}.sql"
     return Response(full_sql, mimetype="application/sql", headers={"Content-Disposition": f"attachment;filename={filename}"})
 
 @app.route('/database/restore', methods=['POST'])
@@ -1153,8 +1122,8 @@ if __name__ == '__main__':
     port = Config.PORT
     debug = Config.DEBUG
     print("=" * 55)
-    print(" SISTEM INFORMASI PENJUALAN ES TELER (FLASK & MYSQL)  ")
-    print(f" Berjalan di: http://localhost:{port}/es_teler_pos/member")
-    print(" Akun Admin Default: admin / admin123                 ")
+    print(" SISTEM INFORMASI PENJUALAN KEDAI UNIK (FLASK & MYSQL) ")
+    print(f" Berjalan di: http://localhost:{port}")
+    print(" Akun Admin Default: admin / admin123")
     print("=" * 55)
     app.run(host='0.0.0.0', port=port, debug=debug)

@@ -23,58 +23,58 @@
 
 <!-- 4 Key Stat Cards -->
 <div class="row g-3 mb-4">
-  <!-- Omset Hari Ini -->
+  <!-- 1. Total Omset: Blok Hijau Muda, Icon Hitam -->
   <div class="col-12 col-sm-6 col-xl-3">
-    <div class="stat-box stat-primary">
+    <div class="stat-box">
       <div class="stat-info">
         <span>Total Omset Hari Ini</span>
         <h3>Rp {{ "{:,.0f}".format(omset_hari_ini or 0).replace(',', '.') }}</h3>
-        <small class="text-success fw-semibold"><i class="bi bi-arrow-up-right me-1"></i>Pendapatan Bersih</small>
+        <small class="fw-semibold" style="color: #14532d;"><i class="bi bi-arrow-up-right me-1"></i>Pendapatan Bersih</small>
       </div>
-      <div class="stat-icon">
-        <i class="bi bi-cash-coin"></i>
+      <div class="stat-icon" style="background-color: #bbf7d0 !important;">
+        <i class="bi bi-cash-stack" style="color: #000000 !important;"></i>
       </div>
     </div>
   </div>
 
-  <!-- Transaksi Hari Ini -->
+  <!-- 2. Transaksi Selesai: Teks Hijau Tua, Blok Abu-Abu, Icon Hitam -->
   <div class="col-12 col-sm-6 col-xl-3">
-    <div class="stat-box stat-info">
+    <div class="stat-box">
       <div class="stat-info">
         <span>Transaksi Selesai</span>
-        <h3>{{ transaksi_selesai_count or 0 }}</h3>
-        <small class="text-muted">Pesanan Berhasil</small>
+        <h3 class="text-dark">{{ transaksi_hari_ini_count or 0 }}</h3>
+        <small class="fw-semibold" style="color: #14532d;">Pesanan Berhasil</small>
       </div>
-      <div class="stat-icon">
-        <i class="bi bi-receipt"></i>
+      <div class="stat-icon" style="background-color: #e2e8f0 !important;">
+        <i class="bi bi-receipt" style="color: #000000 !important;"></i>
       </div>
     </div>
   </div>
 
-  <!-- Antrean Aktif -->
+  <!-- 3. Antrean Aktif: Blok Kuning Muda, Icon Hitam -->
   <div class="col-12 col-sm-6 col-xl-3">
-    <div class="stat-box stat-warning">
+    <div class="stat-box">
       <div class="stat-info">
         <span>Antrean Berjalan</span>
-        <h3>{{ antrean_aktif_count or 0 }}</h3>
+        <h3 class="text-dark">{{ antrean_aktif_count or 0 }}</h3>
         <small class="text-warning fw-semibold"><i class="bi bi-clock-history me-1"></i>Perlu Diproses</small>
       </div>
-      <div class="stat-icon">
-        <i class="bi bi-hourglass-split"></i>
+      <div class="stat-icon" style="background-color: #fef08a !important;">
+        <i class="bi bi-hourglass-split" style="color: #000000 !important;"></i>
       </div>
     </div>
   </div>
 
-  <!-- Menu Aktif & Bahan -->
+  <!-- 4. Bahan Menipis: Blok Merah Pekat, Icon Hitam -->
   <div class="col-12 col-sm-6 col-xl-3">
-    <div class="stat-box stat-danger">
+    <div class="stat-box">
       <div class="stat-info">
         <span>Bahan Menipis</span>
         <h3 class="text-danger">{{ low_stock_count or 0 }}</h3>
         <small class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle me-1"></i>Perlu restock segera</small>
       </div>
-      <div class="stat-icon">
-        <i class="bi bi-box-seam"></i>
+      <div class="stat-icon" style="background-color: #dc2626 !important;">
+        <i class="bi bi-box-seam" style="color: #000000 !important;"></i>
       </div>
     </div>
   </div>

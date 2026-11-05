@@ -22,26 +22,106 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   
   <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      overflow-x: hidden;
+      width: 100%;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      background-color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* Sidebar Navigasi */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 260px;
+      z-index: 1045;
+      background-color: #ffffff;
+      border-right: 1px solid #f1f5f9;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Konten Utama Bentang Penuh */
+    .main-wrapper {
+      margin-left: 260px;
+      width: calc(100% - 260px);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Mode Fullscreen / Fokus: Sidebar disembunyikan dan wrapper melebar 100% */
+    body.sidebar-collapsed .sidebar {
+      transform: translateX(-100%);
+    }
+    body.sidebar-collapsed .main-wrapper {
+      margin-left: 0 !important;
+      width: 100% !important;
+    }
+
+    /* Area Konten Melebar Maksimal */
+    .content-area {
+      width: 100%;
+      flex: 1;
+    }
+
+    .content-area .container {
+      max-width: 100% !important;
+      width: 100% !important;
+    }
+
+    /* Overlay Mobile */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 1040;
+      backdrop-filter: blur(2px);
+    }
+
+    /* Responsif HP & Tablet (<= 991.98px) */
+    @media (max-width: 991.98px) {
+      .sidebar {
+        transform: translateX(-100%);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
+      .main-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+      }
+      body.sidebar-mobile-open .sidebar {
+        transform: translateX(0);
+      }
+      body.sidebar-mobile-open .sidebar-overlay {
+        display: block;
+      }
+    }
+
+    /* Topbar */
     .topbar {
-      position: relative;
-      z-index: 1050;
-      overflow: visible !important;
+      position: sticky;
+      top: 0;
+      z-index: 1030;
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      width: 100%;
     }
     .topbar-right {
       position: relative;
       z-index: 1060;
-    }
-    .topbar-right .dropdown {
-      position: relative;
-      z-index: 1065;
-    }
-    .topbar-right button {
-      cursor: pointer !important;
-      position: relative;
-      z-index: 1070;
-    }
-    .topbar-right button * {
-      pointer-events: none !important;
     }
     .dropdown-menu {
       z-index: 9999 !important;
@@ -52,8 +132,11 @@
 </head>
 <body>
 
+  <!-- Overlay Khusus Mobile/Tablet -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
   <!-- ================= SIDEBAR ================= -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <div class="sidebar-brand-icon">
         <i class="bi bi-cup-straw"></i>
@@ -155,16 +238,16 @@
   </aside>
 
   <!-- ================= MAIN WRAPPER ================= -->
-  <div class="main-wrapper">
+  <div class="main-wrapper" id="mainWrapper">
     <!-- Topbar -->
-    <header class="topbar">
-      <div class="topbar-left">
-        <button type="button" class="btn-sidebar-toggle" aria-label="Toggle Sidebar">
+    <header class="topbar p-3 d-flex justify-content-between align-items-center">
+      <div class="topbar-left d-flex align-items-center gap-3">
+        <button type="button" class="btn btn-light border p-2 rounded-3 btn-sidebar-toggle" id="sidebarToggleBtn" aria-label="Toggle Sidebar">
           <i class="bi bi-list fs-5"></i>
         </button>
         <div class="topbar-title">
-          <h4>{% block header_title %}Dashboard{% endblock %}</h4>
-          <span>{% block header_subtitle %}Sistem Penjualan &amp; Operasional Terintegrasi{% endblock %}</span>
+          <h4 class="mb-0 fw-bold fs-5">{% block header_title %}Dashboard{% endblock %}</h4>
+          <span class="text-muted small">{% block header_subtitle %}Sistem Penjualan &amp; Operasional Terintegrasi{% endblock %}</span>
         </div>
       </div>
 
@@ -218,39 +301,28 @@
             {% endif %}
           </ul>
         </div>
-<!-- Admin Profile Dropdown -->
+
+        <!-- Admin Profile Dropdown (Sesuai Gambar 1: Hanya 1 Pilihan Log Out) -->
         <div class="dropdown">
-          <button class="btn btn-light d-flex align-items-center gap-2 rounded-pill px-3 py-1 border" type="button" id="adminDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
-            <div class="text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 0.85rem; background-color: #f472b6;">
+          <button class="btn btn-light d-flex align-items-center gap-2 rounded-pill px-3 py-1 border shadow-sm" type="button" id="adminDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+            <div class="text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 0.85rem; background-color: #d648ec;">
               <i class="bi bi-person"></i>
             </div>
-            <span class="fw-semibold small d-none d-sm-inline">{{ session.get('username', 'admin') }}</span>
-            <i class="bi bi-chevron-down small text-muted"></i>
+            <span class="fw-semibold small">{{ session.get('username', 'admin') }}</span>
           </button>
-          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="adminDropdownBtn">
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-1 mt-2 rounded-3" aria-labelledby="adminDropdownBtn" style="min-width: 160px;">
             <li>
-              <a class="dropdown-item py-2" href="{{ url_for('pengaturan_page') }}">
-                <i class="bi bi-gear me-2 text-primary"></i> Pengaturan Toko
-              </a>
-            </li>
-            <li>
-              <a class="dropdown-item py-2" href="{{ url_for('log_aktivitas_page') }}">
-                <i class="bi bi-clock-history me-2 text-secondary"></i> Log Aktivitas
-              </a>
-            </li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-              <a class="dropdown-item py-2 text-danger" href="{{ url_for('logout') }}" onclick="return confirm('Yakin ingin logout?')">
-                <i class="bi bi-box-arrow-right me-2 text-danger"></i> Logout
+              <a class="dropdown-item py-2 text-danger d-flex align-items-center gap-2 fw-semibold" href="{{ url_for('logout') }}" onclick="return confirm('Apakah Anda yakin ingin logout?')">
+                <i class="bi bi-box-arrow-right text-danger fs-5"></i>
+                <span>Log Out</span>
               </a>
             </li>
           </ul>
         </div>
       </div>
     </header>
-
-    <!-- Main Content Area -->
-    <main class="content-area">
+    <!-- Main Content Area (Full-Width) -->
+    <main class="content-area p-3 p-md-4">
       <!-- Flash Alert Messages -->
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -275,19 +347,45 @@
   <!-- Main JS -->
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
-  <!-- Handler Klik Dropdown -->
+  <!-- Script Pengendali Toggle Sidebar & Dropdown -->
   <script>
     document.addEventListener("DOMContentLoaded", function () {
+      // 1. Logika Geser/Toggle Sidebar
+      const toggleBtn = document.getElementById("sidebarToggleBtn");
+      const overlay = document.getElementById("sidebarOverlay");
+
+      function toggleSidebar() {
+        if (window.innerWidth <= 991.98) {
+          document.body.classList.toggle("sidebar-mobile-open");
+        } else {
+          document.body.classList.toggle("sidebar-collapsed");
+        }
+      }
+
+      if (toggleBtn) {
+        toggleBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          toggleSidebar();
+        });
+      }
+
+      if (overlay) {
+        overlay.addEventListener("click", function () {
+          document.body.classList.remove("sidebar-mobile-open");
+        });
+      }
+
+      // 2. Dropdown Header
       function attachDropdown(buttonId) {
-        var btn = document.getElementById(buttonId);
+        const btn = document.getElementById(buttonId);
         if (!btn) return;
 
         btn.addEventListener("click", function (e) {
           e.preventDefault();
           e.stopPropagation();
 
-          var container = btn.closest(".dropdown");
-          var menu = container ? container.querySelector(".dropdown-menu") : null;
+          const container = btn.closest(".dropdown");
+          const menu = container ? container.querySelector(".dropdown-menu") : null;
 
           document.querySelectorAll(".dropdown-menu.show").forEach(function (openMenu) {
             if (openMenu !== menu) openMenu.classList.remove("show");

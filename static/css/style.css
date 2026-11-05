@@ -779,7 +779,7 @@ body {
 }
 
 .receipt-divider {
-  border-top: 1px dashed #94A3B8;
+  border-top: 1px dashed #000307;
   margin: 0.75rem 0;
 }
 
@@ -890,4 +890,88 @@ body {
     width: 100%;
     max-height: 450px;
   }
+}
+/* Paksa warna harga menu kasir jadi hitam */
+.pos-menu-card .fw-bold,
+.card-menu .fw-bold,
+[class*="price"],
+[class*="harga"] {
+    color: #1e293b !important;
+}
+
+/* Paksa rincian subtotal & diskon jadi hitam */
+.cart-summary .text-muted,
+.order-summary .text-muted,
+#subtotalDisplay,
+.summary-row span {
+    color: #1e293b !important;
+}
+/* ========================================================
+   WARNA UNGU MAGENTA (SESUAI TOMBOL TAMBAH BAHAN BAKU)
+   ======================================================== */
+
+/* 1. Tab aktif (Daftar Bahan Baku, Semua Menu, dll.) */
+.nav-pills .nav-link.active,
+.nav-pills .show > .nav-link,
+#stokTab .nav-link.active,
+.btn-primary {
+  background-color: #990099 !important;
+  border-color: #990099 !important;
+  color: #ffffff !important;
+}
+
+/* 2. Teks tab yang tidak aktif (Riwayat Mutasi Stok) */
+.nav-pills .nav-link:not(.active),
+#stokTab .nav-link:not(.active) {
+  color: #990099 !important;
+}
+
+/* Efek saat tab tidak aktif diarahkan kursor (hover) */
+.nav-pills .nav-link:not(.active):hover,
+#stokTab .nav-link:not(.active):hover {
+  background-color: #fdf2fd !important;
+  color: #770077 !important;
+}
+
+/* 3. Tombol outline & tombol mutasi yang awalnya biru */
+.btn-outline-primary {
+  color: #990099 !important;
+  border-color: #990099 !important;
+}
+
+.btn-outline-primary:hover {
+  background-color: #990099 !important;
+  border-color: #990099 !important;
+  color: #ffffff !important;
+}
+
+/* 4. Ikon dan teks penanda */
+.text-primary {
+  color: #990099 !important;
+}
+
+.badge.bg-primary-subtle {
+  background-color: #fdf2fd !important;
+  color: #990099 !important;
+}
+/* ========================================================
+   AVATAR PROFIL ADMIN UNGU MAGENTA
+   ======================================================== */
+
+/* Mengubah background lingkaran avatar admin di navbar */
+.nav-profile .avatar,
+.navbar-user .avatar,
+.user-avatar,
+.admin-badge .rounded-circle,
+.header-profile .rounded-circle,
+[class*="avatar"] {
+  background-color: #990099 !important;
+  color: #ffffff !important;
+}
+
+/* Jika menggunakan ikon SVG / Bootstrap Icon di dalam lingkaran */
+.nav-profile .avatar i,
+.user-avatar i,
+[class*="avatar"] i {
+  color: #ffffff !important;
 }

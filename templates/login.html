@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login Admin - Sistem Informasi Penjualan Es Teler</title>
+  <title>Login Admin - Kedai Unik</title>
   
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo.svg') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,29 +15,82 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   
   <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      background: linear-gradient(135deg, #c70289 0%, #a10394 50%, #a010b9 100%);
+      background: linear-gradient(135deg, #a10394 0%, #7b0284 45%, #4a005c 100%);
+      background-attachment: fixed;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 1.5rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      position: relative;
+      overflow-x: hidden;
     }
+
+    /* Ornamen Lingkaran Blur Transparan */
+    .bg-shape {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(85px);
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    .shape-1 {
+      width: 420px;
+      height: 420px;
+      background: #e024c3;
+      top: -100px;
+      left: -100px;
+    }
+    .shape-2 {
+      width: 480px;
+      height: 480px;
+      background: #7c3aed;
+      bottom: -120px;
+      right: -120px;
+    }
+    .shape-3 {
+      width: 260px;
+      height: 260px;
+      background: #f43f5e;
+      top: 45%;
+      right: 10%;
+      transform: translateY(-50%);
+    }
+
+    /* Card Box Login */
     .login-card {
       background: #FFFFFF;
       border-radius: 24px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
       width: 100%;
       max-width: 440px;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      position: relative;
+      z-index: 10;
     }
+
     .login-header {
-      background: linear-gradient(180deg, #F0F9FF 0%, #FFFFFF 100%);
-      padding: 2.25rem 2rem 1.5rem;
+      background: linear-gradient(180deg, #FDF4FF 0%, #FFFFFF 100%);
+      padding: 2.25rem 2rem 1.25rem;
       text-align: center;
-      border-bottom: 1px solid #E2E8F0;
+      border-bottom: 1px solid #F1F5F9;
     }
+
     .brand-avatar {
       width: 68px;
       height: 68px;
@@ -49,49 +102,71 @@
       justify-content: center;
       margin: 0 auto 1rem;
       font-size: 2.2rem;
-      box-shadow: 0 10px 20px rgba(2, 132, 199, 0.3);
+      box-shadow: 0 10px 20px rgba(192, 2, 199, 0.25);
     }
+
     .login-body {
       padding: 2rem;
     }
+
     .form-control {
       padding: 0.75rem 1rem;
       border-radius: 12px;
       border: 1px solid #CBD5E1;
       font-size: 0.95rem;
     }
+
     .form-control:focus {
-      border-color: #0284C7;
-      box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15);
+      border-color: #a10394;
+      box-shadow: 0 0 0 4px rgba(161, 3, 148, 0.15);
     }
+
+    /* Tombol Login Pill Gradasi Magenta-Ungu */
     .btn-login {
-      background: linear-gradient(135deg, #c7027b 0%, #a1037f 100%);
+      background: linear-gradient(135deg, #c70289 0%, #7b1fa2 50%, #4a148c 100%);
       color: #FFFFFF;
       border: none;
-      padding: 0.8rem;
-      border-radius: 12px;
+      padding: 0.85rem;
+      border-radius: 50px;
       font-weight: 700;
       font-size: 1rem;
-      transition: all 0.25s ease;
-      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+      letter-spacing: 0.3px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 20px rgba(199, 2, 137, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
     }
+
     .btn-login:hover {
-      background: linear-gradient(135deg, #0369A1 0%, #024b75 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 18px rgba(2, 132, 199, 0.4);
+      background: linear-gradient(135deg, #d81b60 0%, #8e24aa 50%, #6a1b9a 100%);
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: 0 12px 25px rgba(199, 2, 137, 0.45);
       color: #FFFFFF;
+    }
+
+    .btn-login:active {
+      transform: translateY(0) scale(0.99);
+      box-shadow: 0 4px 12px rgba(199, 2, 137, 0.3);
     }
   </style>
 </head>
 <body>
+
+  <!-- Ornamen Sudut Background -->
+  <div class="bg-shape shape-1"></div>
+  <div class="bg-shape shape-2"></div>
+  <div class="bg-shape shape-3"></div>
 
   <div class="login-card">
     <div class="login-header">
       <div class="brand-avatar">
         <i class="bi bi-cup-straw"></i>
       </div>
-      <h4 class="fw-bold text-dark mb-1">KEDAI UNIK </h4>
-      <p class="text-muted small mb-0">Sistem Informasi Penjualan &amp; Kasir (POS)</p>
+      <h4 class="fw-bold text-dark mb-1">KEDAI UNIK</h4>
+      <h6 class="fw-semibold text-secondary mb-1">Selamat Datang Admin </h6>
+      <p class="text-muted small mb-0">Silakan login untuk mengelola operasional Kedai Unik.</p>
     </div>
 
     <div class="login-body">
@@ -106,12 +181,13 @@
           {% endfor %}
         {% endif %}
       {% endwith %}
-<form action="{{ url_for('login') }}" method="POST">
+
+      <form action="{{ url_for('login') }}" method="POST">
         <div class="mb-3">
-          <label class="form-label fw-semibold small text-muted">username</label>
+          <label class="form-label fw-semibold small text-muted">Username</label>
           <div class="input-group">
             <span class="input-group-text bg-light border-end-0" style="border-radius: 12px 0 0 12px;">
-              <i class="bi bi-person text-primary"></i>
+              <i class="bi bi-person text-secondary"></i>
             </span>
             <input type="text" name="username_or_email" class="form-control border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="Masukkan username" required autofocus>
           </div>
@@ -121,7 +197,7 @@
           <label class="form-label fw-semibold small text-muted">Password</label>
           <div class="input-group">
             <span class="input-group-text bg-light border-end-0" style="border-radius: 12px 0 0 12px;">
-              <i class="bi bi-lock text-primary"></i>
+              <i class="bi bi-lock text-secondary"></i>
             </span>
             <input type="password" id="inputPassword" name="password" class="form-control border-start-0 border-end-0" placeholder="Masukkan password" required>
             <button class="btn btn-light border border-start-0 text-muted" type="button" style="border-radius: 0 12px 12px 0;" onclick="togglePasswordVisibility()">
@@ -131,7 +207,7 @@
         </div>
 
         <button type="submit" class="btn btn-login w-100">
-          <i class="bi bi-box-arrow-in-right me-1"></i> Masuk ke Dashboard
+          <i class="bi bi-box-arrow-in-right"></i> Masuk ke Dashboard
         </button>
       </form>
     </div>
