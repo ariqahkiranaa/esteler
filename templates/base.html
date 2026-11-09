@@ -216,6 +216,13 @@
           <span>Pengaturan</span>
         </a>
       </li>
+      <li class="sidebar-item">
+        <a href="{{ url_for('landing') }}" target="_blank" class="sidebar-link">
+          <i class="bi bi-globe2 text-primary"></i>
+          <span>Landing Page</span>
+          <i class="bi bi-box-arrow-up-right ms-auto text-muted small"></i>
+        </a>
+      </li>
       <li class="sidebar-item mt-3">
         <a href="{{ url_for('logout') }}" class="sidebar-link text-danger" onclick="return confirm('Apakah Anda yakin ingin logout?')">
           <i class="bi bi-box-arrow-right text-danger"></i>
@@ -252,6 +259,11 @@
       </div>
 
       <div class="topbar-right d-flex align-items-center gap-2">
+        <!-- Tombol Cepat Lihat Landing Page -->
+        <a href="{{ url_for('landing') }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3 d-none d-lg-inline-flex align-items-center gap-1 fw-semibold" title="Buka Halaman Landing Page Publik">
+          <i class="bi bi-globe2"></i> <span>Website Kedai</span>
+        </a>
+
         <!-- Live Clock -->
         <div class="live-datetime d-none d-md-flex align-items-center" id="liveClock">
           <i class="bi bi-clock me-1 text-primary"></i> Memuat waktu...

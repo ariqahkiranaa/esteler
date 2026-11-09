@@ -6,29 +6,80 @@
 
 {% block content %}
 <style>
-  /* Warna ungu kategori aktif */
+  /* Kategori Aktif Ungu-Magenta */
   .btn-purple-custom {
-    background-color: #B000B9 !important;
-    border-color: #B000B9 !important;
-    color: #FFFFFF !important;
+    background: linear-gradient(135deg, #a81389 0%, #68058a 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(168, 19, 137, 0.25);
   }
 
   .btn-purple-custom:hover {
-    background-color: #92009A !important;
-    border-color: #92009A !important;
-    color: #FFFFFF !important;
+    background: linear-gradient(135deg, #860e6d 0%, #4e0369 100%) !important;
+    color: #ffffff !important;
   }
 
-  /* Badge kode menu ungu */
+  /* Badge Kode Menu */
   .badge-code-purple {
-    background-color: #8e5fa5 !important;
-    color: #fff6f6 !important;
-    border: none;
+    background-color: #fdf2fd !important;
+    color: #a81389 !important;
+    border: 1px solid #f5c2f5 !important;
+    font-weight: 700;
   }
 
-  /* Harga menu hitam */
+  /* Harga Menu */
   .menu-price {
-    color: #111111 !important;
+    color: #0f172a !important;
+  }
+
+  /* Kartu Menu */
+  .card-menu-item {
+    border-radius: 14px !important;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #e2e8f0 !important;
+    background: #ffffff;
+  }
+
+  .card-menu-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px -3px rgba(168, 19, 137, 0.12), 0 4px 6px -2px rgba(168, 19, 137, 0.05) !important;
+    border-color: #f5c2f5 !important;
+  }
+
+  /* Wadah Gambar Disesuaikan Khusus Rasio 4:3 (800x600 px) - Tetap Utuh */
+  .menu-img-container {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background-color: #f1f5f9;
+    position: relative;
+    overflow: hidden;
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+  }
+
+  .menu-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    display: block;
+    transition: transform 0.3s ease;
+  }
+
+  .card-menu-item:hover .menu-img-container img {
+    transform: scale(1.04);
+  }
+
+  /* Tombol Aksi */
+  .btn-action-custom {
+    font-size: 0.8rem;
+    padding: 0.38rem 0.65rem;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
   }
 </style>
 
@@ -50,11 +101,12 @@
         </form>
       </div>
 
+      <!-- KEDUA TOMBOL SUDAH SAMA-SAMA WARNA UNGU SOLID -->
       <div class="col-12 col-md-7 d-flex flex-wrap gap-2 justify-content-md-end">
-        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#kategoriModal">
+        <button type="button" class="btn btn-primary-custom rounded-pill px-3 py-2 text-white fw-semibold d-inline-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#kategoriModal">
           <i class="bi bi-tags me-1"></i> Kelola Kategori
         </button>
-        <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#tambahMenuModal">
+        <button type="button" class="btn btn-primary-custom rounded-pill px-3 py-2 text-white fw-semibold d-inline-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#tambahMenuModal">
           <i class="bi bi-plus-circle me-1"></i> Tambah Menu Baru
         </button>
       </div>
@@ -63,59 +115,65 @@
 </div>
 
 <!-- Category Filters Tab Pills -->
-<div class="d-flex gap-2 overflow-x-auto pb-3 mb-3">
+<div class="d-flex gap-2 overflow-x-auto pb-3 mb-4">
   <a href="{{ url_for('menu_page', q=search_query) }}"
-     class="btn btn-sm {{ 'btn-purple-custom' if not selected_cat else 'btn-light border' }} rounded-pill px-3">
+     class="btn btn-sm {{ 'btn-purple-custom' if not selected_cat else 'btn-light border text-muted' }} rounded-pill px-3 text-nowrap">
     Semua Menu ({{ total_menu_count }})
   </a>
 
   {% for cat in categories %}
   <a href="{{ url_for('menu_page', cat=cat.id, q=search_query) }}"
-     class="btn btn-sm {{ 'btn-purple-custom' if selected_cat == cat.id|string else 'btn-light border' }} rounded-pill px-3">
+     class="btn btn-sm {{ 'btn-purple-custom' if selected_cat == cat.id|string else 'btn-light border text-muted' }} rounded-pill px-3 text-nowrap">
     {{ cat.nama_kategori }} ({{ cat.total_items or 0 }})
   </a>
   {% endfor %}
 </div>
 
 <!-- Menu Items Grid / Cards -->
-<div class="row g-3">
+<div class="row g-4 mb-4">
   {% if menus %}
     {% for m in menus %}
-    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
-      <div class="card-custom h-100 d-flex flex-column position-relative">
+    <div class="col-12 col-sm-6 col-md-6 col-lg-4 col-xxl-3">
+      <div class="card-custom card-menu-item h-100 d-flex flex-column position-relative shadow-sm">
 
         <!-- Status Badge -->
-        <span class="position-absolute top-0 end-0 m-2 badge {{ 'bg-success' if m.status == 'Tersedia' else 'bg-danger' }} shadow-sm">
+        <span class="position-absolute top-0 end-0 m-2 badge {{ 'bg-success' if m.status == 'Tersedia' else 'bg-danger' }} shadow-sm rounded-pill px-2 py-1" style="font-size: 0.75rem; z-index: 5;">
           {{ m.status }}
         </span>
 
-        <!-- Image -->
-        <div style="height: 160px; overflow: hidden; background: #F1F5F9;" class="d-flex align-items-center justify-content-center">
+        <!-- Wadah Gambar Pas Rasio 4:3 -->
+        <div class="menu-img-container">
           <img src="{{ url_for('static', filename='uploads/' + m.gambar) if m.gambar else url_for('static', filename='img/default_menu.jpg') }}"
                alt="{{ m.nama_menu }}"
-               class="w-100 h-100 object-fit-cover"
                onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/default_menu.jpg') }}'">
         </div>
 
         <div class="p-3 d-flex flex-column flex-grow-1">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="badge badge-code-purple small font-monospace">{{ m.kode_menu }}</span>
-            <small class="text-muted">{{ m.nama_kategori }}</small>
+          <!-- Kode Menu & Kategori -->
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="badge badge-code-purple small font-monospace px-2 py-1">{{ m.kode_menu }}</span>
+            <small class="text-muted text-truncate ms-2 fw-semibold" style="font-size: 0.78rem;">{{ m.nama_kategori }}</small>
           </div>
 
-          <h6 class="fw-bold text-dark mb-1 text-truncate" title="{{ m.nama_menu }}">{{ m.nama_menu }}</h6>
+          <!-- Judul Menu -->
+          <h6 class="fw-bold text-dark mb-2 text-truncate" title="{{ m.nama_menu }}" style="font-size: 1.05rem; letter-spacing: -0.2px;">{{ m.nama_menu }}</h6>
 
-          <p class="text-muted small mb-2 text-truncate-2" style="font-size: 0.8rem; height: 38px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+          <!-- Deskripsi Menu -->
+          <p class="text-muted small mb-3" style="font-size: 0.82rem; line-height: 1.55; min-height: 38px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
             {{ m.deskripsi or 'Menu segar khas nusantara pilihan.' }}
           </p>
 
-          <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold menu-price mb-0" style="font-size: 1.05rem;">
-              Rp {{ "{:,.0f}".format(m.harga).replace(',', '.') }}
-            </h5>
+          <!-- Card Footer: Harga & Aksi -->
+          <div class="mt-auto pt-3 border-top">
+            <div class="d-flex justify-content-between align-items-baseline mb-3">
+              <small class="text-muted fw-semibold" style="font-size: 0.75rem;">Harga Jual</small>
+              <span class="fw-bold menu-price text-nowrap" style="font-size: 1.15rem;">
+                Rp {{ "{:,.0f}".format(m.harga).replace(',', '.') }}
+              </span>
+            </div>
 
-            <div class="d-flex align-items-center gap-1">
-              <button class="btn btn-sm btn-outline-primary p-1 px-2" type="button"
+            <div class="d-flex align-items-center gap-1 w-100">
+              <button class="btn btn-sm btn-outline-primary btn-action-custom flex-fill" type="button"
                       data-id="{{ m.id }}"
                       data-kode="{{ m.kode_menu }}"
                       data-nama="{{ m.nama_menu }}"
@@ -124,19 +182,19 @@
                       data-status="{{ m.status }}"
                       data-deskripsi="{{ m.deskripsi or '' }}"
                       onclick="openEditMenuModal(this)" title="Edit Menu">
-                <i class="bi bi-pencil"></i>
+                <i class="bi bi-pencil"></i> <span>Edit</span>
               </button>
 
-              <button class="btn btn-sm btn-outline-success p-1 px-2" type="button"
+              <button class="btn btn-sm btn-outline-success btn-action-custom flex-fill" type="button"
                       data-id="{{ m.id }}"
                       data-nama="{{ m.nama_menu }}"
                       onclick="openResepFromBtn(this)" title="Resep / Komposisi Bahan">
-                <i class="bi bi-link-45deg"></i>
+                <i class="bi bi-link-45deg"></i> <span>Resep</span>
               </button>
 
               <form action="{{ url_for('menu_hapus', id=m.id) }}" method="POST"
-                    onsubmit="return confirm('Apakah Anda yakin ingin menghapus menu {{ m.nama_menu }}?')" class="d-inline">
-                <button type="submit" class="btn btn-sm btn-outline-danger p-1 px-2" title="Hapus Menu">
+                    onsubmit="return confirm('Apakah Anda yakin ingin menghapus menu {{ m.nama_menu }}?')" class="d-inline m-0">
+                <button type="submit" class="btn btn-sm btn-outline-danger btn-action-custom" title="Hapus Menu" style="width: 34px;">
                   <i class="bi bi-trash"></i>
                 </button>
               </form>
@@ -153,7 +211,7 @@
         <i class="bi bi-cup-straw fs-1 text-light-muted d-block mb-2"></i>
         <h5>Tidak ada menu ditemukan</h5>
         <p class="small mb-3">Silakan tambahkan menu baru atau ubah kata kunci pencarian Anda.</p>
-        <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#tambahMenuModal">
+        <button type="button" class="btn btn-primary-custom rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#tambahMenuModal">
           <i class="bi bi-plus-circle me-1"></i> Tambah Menu Baru
         </button>
       </div>
@@ -166,7 +224,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow">
       <form action="{{ url_for('menu_tambah') }}" method="POST" enctype="multipart/form-data">
-        <div class="modal-header bg-primary text-white">
+        <div class="modal-header text-white" style="background: linear-gradient(135deg, #a81389 0%, #68058a 100%);">
           <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2"></i>Tambah Menu Baru</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
@@ -213,14 +271,14 @@
             <div class="col-12">
               <label class="form-label small fw-semibold">Foto / Gambar Menu (Opsional)</label>
               <input type="file" name="foto" class="form-control" accept="image/*">
-              <small class="text-muted">Format didukung: JPG, PNG, WEBP (Maksimal 5MB)</small>
+              <small class="text-muted">Format ideal: 4:3 (800x600 px), JPG / PNG / WEBP</small>
             </div>
           </div>
         </div>
 
         <div class="modal-footer bg-light">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-primary-custom"><i class="bi bi-save me-1"></i> Simpan Menu</button>
+          <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary-custom rounded-pill px-4"><i class="bi bi-save me-1"></i> Simpan Menu</button>
         </div>
       </form>
     </div>
@@ -232,7 +290,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow">
       <form id="editMenuForm" method="POST" enctype="multipart/form-data">
-        <div class="modal-header bg-primary text-white">
+        <div class="modal-header text-white" style="background: linear-gradient(135deg, #a81389 0%, #68058a 100%);">
           <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Data Menu</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
@@ -284,8 +342,8 @@
         </div>
 
         <div class="modal-footer bg-light">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-primary-custom"><i class="bi bi-save me-1"></i> Perbarui Menu</button>
+          <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary-custom rounded-pill px-4"><i class="bi bi-save me-1"></i> Perbarui Menu</button>
         </div>
       </form>
     </div>
@@ -316,7 +374,7 @@
             </div>
 
             <div class="col-md-2">
-              <button type="submit" class="btn btn-primary-custom w-100">Simpan</button>
+              <button type="submit" class="btn btn-primary-custom rounded-pill w-100">Simpan</button>
             </div>
           </div>
         </form>
@@ -344,7 +402,7 @@
                 <td>
                   <form action="{{ url_for('kategori_hapus', id=cat.id) }}" method="POST"
                         onsubmit="return confirm('Hapus kategori ini? Menu terkait akan terhapus atau kehilangan kategori!')">
-                    <button type="submit" class="btn btn-sm btn-outline-danger p-1 px-2" title="Hapus Kategori">
+                    <button type="submit" class="btn btn-sm btn-outline-danger p-1 px-2 rounded-2" title="Hapus Kategori">
                       <i class="bi bi-trash"></i>
                     </button>
                   </form>
@@ -390,7 +448,7 @@
             </div>
 
             <div class="col-2 d-flex align-items-end">
-              <button type="submit" class="btn btn-sm btn-success w-100">+ Tambah</button>
+              <button type="submit" class="btn btn-sm btn-success w-100 rounded-pill">+ Tambah</button>
             </div>
           </div>
         </form>

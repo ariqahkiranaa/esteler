@@ -87,9 +87,6 @@ def before_request():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if 'user_id' in session:
-        return redirect(url_for('dashboard'))
-
     if request.method == 'POST':
         username_or_email = request.form.get('username_or_email', '').strip()
         password = request.form.get('password', '').strip()
@@ -113,6 +110,8 @@ def login():
         else:
             flash('Username/email atau password yang Anda masukkan salah.', 'danger')
 
+    # Bersihkan sesi lama saat membuka form login agar WAJIB memasukkan password
+    session.clear()
     return render_template('login.html')
 
 @app.route('/logout')
@@ -126,10 +125,41 @@ def logout():
     return redirect(url_for('login'))
 
 # ========================================================
-# 2. DASHBOARD UTAMA
+# 2. LANDING PAGE PUBLIK
 # ========================================================
 
 @app.route('/')
+def landing():
+    """Halaman Landing Page publik untuk pengunjung / calon pembeli kedai."""
+    try:
+        categories = query_db("SELECT * FROM kategori ORDER BY id ASC")
+    except Exception:
+        categories = []
+
+    try:
+        menus = query_db("""
+            SELECT m.*, k.nama_kategori 
+            FROM menu_item m
+            LEFT JOIN kategori k ON m.kategori_id = k.id
+            WHERE m.status = 'Tersedia'
+            ORDER BY m.kategori_id ASC, m.id ASC
+        """)
+    except Exception:
+        menus = []
+
+    return render_template(
+        'landing.html',
+        categories=categories or [],
+        menus=menus or [],
+        total_menu=len(menus) if menus else 0
+    )
+
+# ========================================================
+# 3. DASHBOARD UTAMA SISTEM INFORMASI
+# ========================================================
+
+@app.route('/dashboard')
+@app.route('/admin')
 @login_required
 def dashboard():
     # 1. Total Omset Hari Ini
