@@ -23,7 +23,13 @@ from db import (
 )
 
 app = Flask(__name__)
+app.secret_key = "kunci_rahasia_kedai_unik_bebas"
 app.config.from_object(Config)
+
+try:
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+except OSError:
+    app.config['UPLOAD_FOLDER'] = '/tmp'
 
 # Pastikan folder upload ada
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
