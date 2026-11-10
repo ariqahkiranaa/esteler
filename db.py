@@ -40,6 +40,44 @@ if firebase_admin:
 
 
 def translate_mysql_to_sqlite(sql):
+    """Menerjemahkan sintaks spesifik MySQL di app.py agar jalan sempurna di SQLite."""
+    # 1. Parameter %s menjadi ?
+    sql = sql.replace('%s', '?')
+    
+    # 2. DATE_SUB(CURDATE(), INTERVAL 6 DAY) -> date('now', '+7 hours', '-6 day')
+    sql = re.sub(
+        r"DATE_SUB\(\s*CURDATE\(\)\s*,\s*INTERVAL\s+(\d+)\s+DAY\s*\)",
+        r"date('now', '+7 hours', '-\1 day')",
+        sql,
+        flags=re.IGNORECASE
+    )
+    
+    # 3. CURDATE() -> tanggal hari ini WIB
+    sql = re.sub(r"CURDATE\(\)", "date('now', '+7 hours')", sql, flags=re.IGNORECASE)
+    
+    # 4. Tangani CONCAT(...) meskipun di dalam string terdapat tanda kurung seperti ' ('
+    def repl_concat(match):
+        inner = match.group(1)
+        # Pisahkan berdasarkan koma yang berada di luar tanda kutip
+        parts = re.split(r",\s*(?=(?:[^']*'[^']*')*[^']*$)", inner)
+        return "(" + " || ".join(p.strip() for p in parts) + ")"
+
+    sql = re.sub(
+        r"(?<!GROUP_)CONCAT\(((?:[^()'']|'[^']*')+)\)",
+        repl_concat,
+        sql,
+        flags=re.IGNORECASE
+    )
+    
+    # 5. GROUP_CONCAT(expr SEPARATOR sep) -> GROUP_CONCAT(expr, sep)
+    sql = re.sub(
+        r"GROUP_CONCAT\((.+?)\s+SEPARATOR\s+('[^']*')\)",
+        r"GROUP_CONCAT(\1, \2)",
+        sql,
+        flags=re.IGNORECASE | re.DOTALL
+    )
+    return sql
+
     """Menerjemahkan sintaks spesifik MySQL di app.py agar jalan di engine SQLite."""
     # 1. Parameter %s menjadi ?
     sql = sql.replace('%s', '?')
