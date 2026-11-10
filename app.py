@@ -23,16 +23,14 @@ from db import (
 )
 
 app = Flask(__name__)
-app.secret_key = "kunci_rahasia_kedai_unik_bebas"
 app.config.from_object(Config)
+app.secret_key = app.config.get('SECRET_KEY') or "kunci_rahasia_kedai_unik_bebas"
 
+# Pastikan folder upload aman untuk environment Vercel (Read-Only)
 try:
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 except OSError:
     app.config['UPLOAD_FOLDER'] = '/tmp'
-
-# Pastikan folder upload ada
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Helper: Allowed file extensions
 def allowed_file(filename):
@@ -53,7 +51,13 @@ def login_required(f):
 def before_request():
     # Ambil pengaturan kedai
     try:
-        g.shop = query_db("SELECT * FROM pengaturan WHERE id = 1", one=True)
+        shop_data = query_db("SELECT * FROM pengaturan WHERE id = 1", one=True)
+        g.shop = shop_data if shop_data else {
+            'nama_toko': 'Kedai Unik',
+            'slogan': 'Sensasi Kesegaran Asli Buah Nusantara',
+            'alamat': 'Jl. Boulevard Hijau No. 77',
+            'no_telepon': '0812-3456-7890'
+        }
     except Exception:
         g.shop = {
             'nama_toko': 'Kedai Unik',
@@ -97,10 +101,14 @@ def login():
         username_or_email = request.form.get('username_or_email', '').strip()
         password = request.form.get('password', '').strip()
 
-        user = query_db("""
-            SELECT * FROM users
-            WHERE username = %s OR email = %s
-        """, (username_or_email, username_or_email), one=True)
+        try:
+            user = query_db("""
+                SELECT * FROM users
+                WHERE username = %s OR email = %s
+            """, (username_or_email, username_or_email), one=True)
+        except Exception as e:
+            user = None
+            print(f"[LOGIN DB ERROR] {e}")
 
         if user and check_password_hash(user['password'], password):
             session['user_id'] = user['id']
@@ -115,8 +123,9 @@ def login():
             return redirect(next_url or url_for('dashboard'))
         else:
             flash('Username/email atau password yang Anda masukkan salah.', 'danger')
+            return render_template('login.html')
 
-    # Bersihkan sesi lama saat membuka form login agar WAJIB memasukkan password
+    # Bersihkan sesi lama saat membuka form login (GET)
     session.clear()
     return render_template('login.html')
 
@@ -241,14 +250,14 @@ def dashboard():
         antrean_aktif_count=g.antrean_aktif_count,
         low_stock_count=g.low_stock_count,
         low_stock_items=g.low_stock_items,
-        recent_transactions=recent_trx,
-        top_menus=top_menus,
+        recent_transactions=recent_trx or [],
+        top_menus=top_menus or [],
         chart_labels=chart_labels,
         chart_data=chart_data
     )
 
 # ========================================================
-# 3. MANAJEMEN MENU & KATEGORI
+# 4. MANAJEMEN MENU & KATEGORI
 # ========================================================
 
 @app.route('/menu')
@@ -260,7 +269,7 @@ def menu_page():
     sql = """
         SELECT m.*, k.nama_kategori
         FROM menu_item m
-        JOIN kategori k ON m.kategori_id = k.id
+        LEFT JOIN kategori k ON m.kategori_id = k.id
         WHERE 1=1
     """
     params = []
@@ -274,7 +283,7 @@ def menu_page():
         params.append(selected_cat)
 
     sql += " ORDER BY m.id DESC"
-    menus = query_db(sql, params)
+    menus = query_db(sql, params) or []
 
     categories = query_db("""
         SELECT k.*, COUNT(m.id) as total_items
@@ -282,10 +291,11 @@ def menu_page():
         LEFT JOIN menu_item m ON k.id = m.kategori_id
         GROUP BY k.id
         ORDER BY k.id ASC
-    """)
+    """) or []
 
-    all_raw_materials = query_db("SELECT id, nama_bahan, satuan FROM bahan_baku ORDER BY nama_bahan ASC")
-    total_menu_count = len(query_db("SELECT id FROM menu_item"))
+    all_raw_materials = query_db("SELECT id, nama_bahan, satuan FROM bahan_baku ORDER BY nama_bahan ASC") or []
+    all_menus = query_db("SELECT id FROM menu_item") or []
+    total_menu_count = len(all_menus)
 
     next_num = total_menu_count + 1
     auto_kode_menu = f"MN-{next_num:03d}"
@@ -316,8 +326,11 @@ def menu_tambah():
     file = request.files.get('foto')
     if file and file.filename != '' and allowed_file(file.filename):
         filename = secure_filename(f"menu_{kode_menu}_{file.filename}")
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        foto_filename = filename
+        try:
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            foto_filename = filename
+        except OSError:
+            pass
 
     try:
         execute_db("""
@@ -345,7 +358,10 @@ def menu_edit(id):
     file = request.files.get('foto')
     if file and file.filename != '' and allowed_file(file.filename):
         filename = secure_filename(f"menu_{kode_menu}_{file.filename}")
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        try:
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        except OSError:
+            pass
         execute_db("""
             UPDATE menu_item
             SET kategori_id=%s, kode_menu=%s, nama_menu=%s, deskripsi=%s, harga=%s, status=%s, gambar=%s
@@ -426,20 +442,20 @@ def resep_hapus(id):
     return redirect(url_for('menu_page'))
 
 # ========================================================
-# 4. MANAJEMEN STOK BAHAN BAKU
+# 5. MANAJEMEN STOK BAHAN BAKU
 # ========================================================
 
 @app.route('/stok')
 @login_required
 def stok_page():
-    raw_materials = query_db("SELECT * FROM bahan_baku ORDER BY nama_bahan ASC")
+    raw_materials = query_db("SELECT * FROM bahan_baku ORDER BY nama_bahan ASC") or []
     stock_logs = query_db("""
         SELECT l.*, b.nama_bahan, b.satuan
         FROM log_stok_bahan l
         JOIN bahan_baku b ON l.bahan_id = b.id
         ORDER BY l.id DESC
         LIMIT 50
-    """)
+    """) or []
     return render_template(
         'stok.html',
         active_page='stok',
@@ -471,8 +487,6 @@ def bahan_tambah():
     log_activity(session['user_id'], session['username'], 'Tambah Bahan Baku', f"Menambah bahan: {nama_bahan} ({stok} {satuan})")
     flash(f"Bahan baku '{nama_bahan}' berhasil ditambahkan!", 'success')
     return redirect(url_for('stok_page'))
-
-
 
 @app.route('/stok/hapus/<int:id>', methods=['POST'])
 @login_required
@@ -514,7 +528,7 @@ def bahan_mutasi():
     return redirect(url_for('stok_page'))
 
 # ========================================================
-# 5. KASIR (POS) & SISTEM ANTREAN
+# 6. KASIR (POS) & SISTEM ANTREAN
 # ========================================================
 
 @app.route('/pos')
@@ -523,11 +537,11 @@ def pos_page():
     menus = query_db("""
         SELECT m.*, k.nama_kategori
         FROM menu_item m
-        JOIN kategori k ON m.kategori_id = k.id
+        LEFT JOIN kategori k ON m.kategori_id = k.id
         ORDER BY m.kategori_id ASC, m.nama_menu ASC
-    """)
-    categories = query_db("SELECT * FROM kategori ORDER BY id ASC")
-    members = query_db("SELECT id, kode_member, nama, poin FROM pelanggan_member ORDER BY nama ASC")
+    """) or []
+    categories = query_db("SELECT * FROM kategori ORDER BY id ASC") or []
+    members = query_db("SELECT id, kode_member, nama, poin FROM pelanggan_member ORDER BY nama ASC") or []
     next_queue = get_next_queue_number()
 
     return render_template(
@@ -641,7 +655,7 @@ def struk_print(id):
         flash("Data transaksi tidak ditemukan.", "danger")
         return redirect(url_for('pos_page'))
 
-    items = query_db("SELECT * FROM detail_transaksi WHERE transaksi_id = %s", (id,))
+    items = query_db("SELECT * FROM detail_transaksi WHERE transaksi_id = %s", (id,)) or []
     return render_template('struk_print.html', trx=trx, items=items, shop=g.shop)
 
 # Antrean Pesanan Board
@@ -659,7 +673,7 @@ def antrean_page():
         WHERE t.tanggal = %s
         GROUP BY t.id
         ORDER BY t.id ASC
-    """, (tgl,))
+    """, (tgl,)) or []
 
     menunggu = [q for q in all_q if q['status_antrean'] == 'Menunggu']
     diproses = [q for q in all_q if q['status_antrean'] == 'Diproses']
@@ -688,13 +702,13 @@ def antrean_update_status(id):
     return redirect(url_for('antrean_page'))
 
 # ========================================================
-# 6. MANAJEMEN PELANGGAN / MEMBER
+# 7. MANAJEMEN PELANGGAN / MEMBER
 # ========================================================
 
 @app.route('/member')
 @login_required
 def member_page():
-    members = query_db("SELECT * FROM pelanggan_member ORDER BY id DESC")
+    members = query_db("SELECT * FROM pelanggan_member ORDER BY id DESC") or []
     total_poin_res = query_db("SELECT SUM(poin) as total FROM pelanggan_member", one=True)
     total_poin = total_poin_res['total'] if total_poin_res and total_poin_res['total'] else 0
 
@@ -761,7 +775,7 @@ def member_hapus(id):
     return redirect(url_for('member_page'))
 
 # ========================================================
-# 7. LAPORAN PENJUALAN & EKSPOR
+# 8. LAPORAN PENJUALAN & EKSPOR
 # ========================================================
 
 @app.route('/laporan')
@@ -792,7 +806,7 @@ def laporan_page():
         params.append(selected_cat)
 
     sql += " GROUP BY t.id ORDER BY t.id DESC"
-    transactions = query_db(sql, params)
+    transactions = query_db(sql, params) or []
 
     total_omset = sum(float(t['total_akhir']) for t in transactions) if transactions else 0
     total_trx = len(transactions)
@@ -806,12 +820,12 @@ def laporan_page():
         FROM detail_transaksi dt
         JOIN transaksi t ON dt.transaksi_id = t.id
         JOIN menu_item mi ON dt.menu_id = mi.id
-        JOIN kategori k ON mi.kategori_id = k.id
+        LEFT JOIN kategori k ON mi.kategori_id = k.id
         WHERE t.tanggal BETWEEN %s AND %s AND t.status_antrean != 'Dibatalkan'
         GROUP BY dt.menu_id, mi.nama_menu, k.nama_kategori
         ORDER BY total_terjual DESC
         LIMIT 5
-    """, (tgl_awal, tgl_akhir))
+    """, (tgl_awal, tgl_akhir)) or []
 
     stock_summary = query_db("""
         SELECT b.nama_bahan, b.satuan, b.stok, b.stok_minimal,
@@ -822,9 +836,9 @@ def laporan_page():
         GROUP BY b.id
         ORDER BY b.stok ASC
         LIMIT 6
-    """, (tgl_awal, tgl_akhir))
+    """, (tgl_awal, tgl_akhir)) or []
 
-    categories = query_db("SELECT id, nama_kategori FROM kategori ORDER BY id ASC")
+    categories = query_db("SELECT id, nama_kategori FROM kategori ORDER BY id ASC") or []
 
     return render_template(
         'laporan.html',
@@ -859,7 +873,7 @@ def laporan_export_excel():
         GROUP BY t.id
         ORDER BY t.id ASC
     """
-    transactions = query_db(sql, (tgl_awal, tgl_akhir))
+    transactions = query_db(sql, (tgl_awal, tgl_akhir)) or []
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -952,7 +966,7 @@ def laporan_export_pdf():
         WHERE t.tanggal BETWEEN %s AND %s AND t.status_antrean != 'Dibatalkan'
         ORDER BY t.id ASC
     """
-    transactions = query_db(sql, (tgl_awal, tgl_akhir))
+    transactions = query_db(sql, (tgl_awal, tgl_akhir)) or []
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
@@ -1009,13 +1023,13 @@ def laporan_export_pdf():
     return send_file(buffer, as_attachment=True, download_name=filename, mimetype="application/pdf")
 
 # ========================================================
-# 8. PENGATURAN, LOG AKTIVITAS & BACKUP DATABASE
+# 9. PENGATURAN, LOG AKTIVITAS & BACKUP DATABASE
 # ========================================================
 
 @app.route('/log-aktivitas')
 @login_required
 def log_aktivitas_page():
-    logs = query_db("SELECT * FROM log_aktivitas ORDER BY id DESC LIMIT 100")
+    logs = query_db("SELECT * FROM log_aktivitas ORDER BY id DESC LIMIT 100") or []
     return render_template('log_aktivitas.html', active_page='log', logs=logs)
 
 @app.route('/pengaturan')
@@ -1140,7 +1154,7 @@ def database_restore():
         with conn.cursor() as cursor:
             for q in queries:
                 cleaned = q.strip()
-                if cleaned:
+                if cleaned and not cleaned.upper().startswith('SET '):
                     cursor.execute(cleaned)
             conn.commit()
         conn.close()
@@ -1158,7 +1172,7 @@ if __name__ == '__main__':
     port = Config.PORT
     debug = Config.DEBUG
     print("=" * 55)
-    print(" SISTEM INFORMASI PENJUALAN KEDAI UNIK (FLASK & MYSQL) ")
+    print(" SISTEM INFORMASI PENJUALAN KEDAI UNIK (FLASK & FIREBASE) ")
     print(f" Berjalan di: http://localhost:{port}")
     print(" Akun Admin Default: admin / admin123")
     print("=" * 55)
