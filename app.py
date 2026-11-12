@@ -322,15 +322,8 @@ def menu_tambah():
     status = request.form.get('status', 'Tersedia')
     deskripsi = request.form.get('deskripsi', '').strip()
 
-    foto_filename = 'default_menu.jpg'
-    file = request.files.get('foto')
-    if file and file.filename != '' and allowed_file(file.filename):
-        filename = secure_filename(f"menu_{kode_menu}_{file.filename}")
-        try:
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            foto_filename = filename
-        except OSError:
-            pass
+    foto_url = request.form.get('foto', '').strip()
+    foto_filename = foto_url if foto_url else 'default_menu.jpg'
 
     try:
         execute_db("""
@@ -355,18 +348,13 @@ def menu_edit(id):
     status = request.form.get('status', 'Tersedia')
     deskripsi = request.form.get('deskripsi', '').strip()
 
-    file = request.files.get('foto')
-    if file and file.filename != '' and allowed_file(file.filename):
-        filename = secure_filename(f"menu_{kode_menu}_{file.filename}")
-        try:
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        except OSError:
-            pass
+    foto_url = request.form.get('foto', '').strip()
+    if foto_url:
         execute_db("""
             UPDATE menu_item
             SET kategori_id=%s, kode_menu=%s, nama_menu=%s, deskripsi=%s, harga=%s, status=%s, gambar=%s
             WHERE id=%s
-        """, (kategori_id, kode_menu, nama_menu, deskripsi, harga, status, filename, id))
+        """, (kategori_id, kode_menu, nama_menu, deskripsi, harga, status, foto_url, id))
     else:
         execute_db("""
             UPDATE menu_item
