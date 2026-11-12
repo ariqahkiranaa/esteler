@@ -1,4 +1,5 @@
 import os
+import base64
 import datetime
 from io import BytesIO
 from functools import wraps
@@ -322,8 +323,12 @@ def menu_tambah():
     status = request.form.get('status', 'Tersedia')
     deskripsi = request.form.get('deskripsi', '').strip()
 
-    foto_url = request.form.get('foto', '').strip()
-    foto_filename = foto_url if foto_url else 'default_menu.jpg'
+    foto_filename = 'default_menu.jpg'
+    file = request.files.get('foto')
+    if file and file.filename != '' and allowed_file(file.filename):
+        mime_type = file.mimetype or 'image/jpeg'
+        encoded_img = base64.b64encode(file.read()).decode('utf-8')
+        foto_filename = f"data:{mime_type};base64,{encoded_img}"
 
     try:
         execute_db("""
@@ -348,13 +353,16 @@ def menu_edit(id):
     status = request.form.get('status', 'Tersedia')
     deskripsi = request.form.get('deskripsi', '').strip()
 
-    foto_url = request.form.get('foto', '').strip()
-    if foto_url:
+    file = request.files.get('foto')
+    if file and file.filename != '' and allowed_file(file.filename):
+        mime_type = file.mimetype or 'image/jpeg'
+        encoded_img = base64.b64encode(file.read()).decode('utf-8')
+        foto_data = f"data:{mime_type};base64,{encoded_img}"
         execute_db("""
             UPDATE menu_item
             SET kategori_id=%s, kode_menu=%s, nama_menu=%s, deskripsi=%s, harga=%s, status=%s, gambar=%s
             WHERE id=%s
-        """, (kategori_id, kode_menu, nama_menu, deskripsi, harga, status, foto_url, id))
+        """, (kategori_id, kode_menu, nama_menu, deskripsi, harga, status, foto_data, id))
     else:
         execute_db("""
             UPDATE menu_item

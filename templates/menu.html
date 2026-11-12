@@ -143,7 +143,7 @@
 
         <!-- Wadah Gambar Pas Rasio 4:3 -->
         <div class="menu-img-container">
-          <img src="{{ url_for('static', filename='uploads/' + m.gambar) if m.gambar else url_for('static', filename='img/default_menu.jpg') }}"
+          <img src="{{ m.gambar if (m.gambar and (m.gambar.startswith('http') or m.gambar.startswith('data:image'))) else (url_for('static', filename='uploads/' + m.gambar) if m.gambar else url_for('static', filename='img/default_menu.jpg')) }}"
                alt="{{ m.nama_menu }}"
                onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/default_menu.jpg') }}'">
         </div>
@@ -271,7 +271,7 @@
             <div class="col-12">
               <label class="form-label small fw-semibold">Foto / Gambar Menu (Opsional)</label>
               <input type="file" name="foto" class="form-control" accept="image/*">
-              <small class="text-muted">Format ideal: 4:3 (800x600 px), JPG / PNG / WEBP</small>
+              <small class="text-muted">Format ideal: 4:3 (800x600 px), JPG / PNG / WEBP (Maks. 1 MB)</small>
             </div>
           </div>
         </div>
