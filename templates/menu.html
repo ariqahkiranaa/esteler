@@ -271,7 +271,7 @@
             <div class="col-12">
               <label class="form-label small fw-semibold">Foto / Gambar Menu (Opsional)</label>
               <input type="file" name="foto" class="form-control" accept="image/*">
-              <small class="text-muted">Format ideal: 4:3 (800x600 px), JPG / PNG / WEBP (Maks. 1 MB)</small>
+              <small class="text-muted">Otomatis dikompres ke ukuran ringan (800x600 px) saat dipilih</small>
             </div>
           </div>
         </div>
@@ -337,6 +337,7 @@
             <div class="col-12">
               <label class="form-label small fw-semibold">Ganti Foto Menu (Opsional)</label>
               <input type="file" name="foto" class="form-control" accept="image/*">
+              <small class="text-muted">Otomatis dikompres ke ukuran ringan (800x600 px) saat dipilih</small>
             </div>
           </div>
         </div>
@@ -532,5 +533,44 @@
       container.innerHTML = '<div class="text-danger small py-2">Gagal memuat resep bahan.</div>';
     }
   }
+
+  // Kompres otomatis foto sebelum di-upload agar ringan & tidak nge-lag
+  function compressImageInput(inputEl) {
+    const file = inputEl.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const maxWidth = 800;
+        const scale = Math.min(1, maxWidth / img.width);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(function(blob) {
+          const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(compressedFile);
+          inputEl.files = dataTransfer.files;
+        }, 'image/jpeg', 0.72);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  document.querySelectorAll('input[type="file"][name="foto"]').forEach(input => {
+    input.addEventListener('change', function() {
+      compressImageInput(this);
+    });
+  });
 </script>
 {% endblock %}
