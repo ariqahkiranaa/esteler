@@ -952,12 +952,7 @@
               </div>
 
               <!-- Gambar Menu Hero -->
-              {% set hero_img = 'uploads/menu_MN-001_Es_teler_creamy.jpg' %}
-              <img src="{{ url_for('static', filename=hero_img) }}" 
-                   alt="Es Teler Juara Spesial" 
-                   class="hero-image"
-                   onerror="this.onerror=null; this.src='{{ url_for('static', filename='uploads/menu_MN-024_Es_Teler_Creamy_Premium_Segar_Lumer_Di_Mulut.jpg') }}';">
-
+              
               <!-- Floating Badge 2 (Bottom Left) -->
               <div class="floating-badge badge-bottom-left">
                 <div class="text-warning fs-5"><i class="bi bi-star-fill"></i></div>
@@ -968,7 +963,11 @@
               </div>
             </div>
           </div>
-        </div>
+        </div>{% set hero_img = 'uploads/menu_MN-001_Es_teler_creamy.jpg' %}
+              <img src="{{ url_for('static', filename=hero_img) }}" 
+                   alt="Es Teler Juara Spesial" 
+                   class="hero-image"
+                   onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/default_menu.jpg') }}';">
       </div>
     </div>
   </section>
@@ -1234,7 +1233,7 @@
   <!-- ========================================================
        TENTANG KEDAI SECTION
        ======================================================== -->
-  <section class="section-padding about-section" id="tentang">
+ <section class="section-padding about-section" id="tentang">
     <div class="container">
       <div class="row align-items-center g-5">
         <!-- Kolom Kiri: Gambar Kolase / Showcase -->
@@ -1243,7 +1242,7 @@
             <img src="{{ url_for('static', filename='uploads/menu_MN-008_Es_Campur_Premium.jpg') }}" 
                  alt="Cerita Rasa Es Teler Juara" 
                  class="w-100" style="height: 440px; object-fit: cover;"
-                 onerror="this.onerror=null; this.src='{{ url_for('static', filename='uploads/menu_MN-001_Es_teler_creamy.jpg') }}';">
+                 onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/default_menu.jpg') }}';">
             
             <div class="position-absolute bottom-0 start-0 end-0 p-4" style="background: linear-gradient(180deg, transparent 0%, rgba(15, 23, 42, 0.88) 100%); color: #ffffff;">
               <h5 class="fw-bold mb-1">Warisan Cita Rasa Buah Tropis</h5>
