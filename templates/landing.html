@@ -1150,7 +1150,7 @@
               <span class="menu-category-tag">{{ m.nama_kategori or 'Spesial Menu' }}</span>
               <span class="menu-badge-status"><i class="bi bi-check2"></i> Tersedia</span>
               
-              <img src="{{ url_for('static', filename='uploads/' + m.gambar) if m.gambar else url_for('static', filename='img/default_menu.jpg') }}" 
+              <img src="{{ m.gambar if (m.gambar and (m.gambar.startswith('http') or m.gambar.startswith('data:image'))) else (url_for('static', filename='uploads/' + m.gambar) if m.gambar else url_for('static', filename='img/default_menu.jpg')) }}"
                    alt="{{ m.nama_menu }}" 
                    class="menu-thumb"
                    onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/default_menu.jpg') }}';">
